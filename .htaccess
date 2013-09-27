@@ -1,0 +1,18 @@
+<IfModule mod_rewrite.c>
+
+    Options -MultiViews
+    RewriteEngine On
+
+    # Set path
+    RewriteBase /
+
+    # Restrict file access to template views and plugins
+    RewriteCond %{REQUEST_URI} ^/(fwd-)?templates/[^/]+/(views|plugins)/.* [OR]
+
+    # Don't rewrite if file exists
+    RewriteCond %{REQUEST_FILENAME} !-f
+
+    # Rewrite everything else to index
+    RewriteRule ^(.*)$ index.php [L]
+
+</IfModule>
