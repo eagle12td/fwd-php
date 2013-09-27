@@ -1,0 +1,7 @@
+{
+	"name": "example",
+	"label": "Example Plugin",
+	"description": "Just another example plugin",
+	"author": "Forward",
+	"version": "1.0.0"
+}
