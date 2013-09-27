@@ -1,7 +1,0 @@
-{
-	"name": "backward",
-	"label": "Backward",
-	"description": "Provides backward compatibility with Forward Alpha",
-	"author": "Forward",
-	"version": "1.0.0"
-}
