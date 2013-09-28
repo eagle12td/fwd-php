@@ -2,11 +2,6 @@
 
 namespace Forward
 {
-	require_once "Connection.php";
-	require_once "Resource.php";
-	require_once "Collection.php";
-	require_once "Record.php";
-
 	/**
 	 * Thrown on client errors
 	 */
