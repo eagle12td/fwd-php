@@ -3,7 +3,7 @@
 return array(
 
 	/* -----------------------------------------------------
-	 * Default API client connection
+	 * Default API client
 	 * -------------------------------------------------- */
 
 	'client_id' => "insert_client_id_here",
@@ -13,7 +13,7 @@ return array(
 	'client_host' => "api.getfwd.com",
 
 	/* -----------------------------------------------------
-	 * Named API client connections
+	 * Named API client
 	 * -------------------------------------------------- */
 
 	'clients' => array(
