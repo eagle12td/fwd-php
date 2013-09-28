@@ -20,7 +20,7 @@ class Config
 	 * @param  string $path
 	 * @return mixed
 	 */
-	public static function get ($path, $default = null)
+	public static function get($path, $default = null)
 	{
 		return self::resolve($path) ?: $default;
 	}
@@ -31,7 +31,7 @@ class Config
 	 * @param  string $path
 	 * @return mixed
 	 */
-	public static function resolve ($path)
+	public static function resolve($path)
 	{
         if (is_array($path))
         {
@@ -67,13 +67,27 @@ class Config
 	 * @param  string $file_path
 	 * @return void
 	 */
-	public static function load ($file_path = null)
+	public static function load($file_path = null)
 	{
-		// Set paths config from global
-		self::$paths = $GLOBALS['paths'];
+		if ($file_path)
+		{
+			self::$params = require($file_path);
+		}
+		else
+		{
+			// Set paths config from global
+			self::$paths = $GLOBALS['paths'];
 
-		// Get config params from config file
-		self::$params = require($file_path ?: self::path('root', 'config'.EXT));
+			// Load base config
+			self::$params = require(self::path('root', 'config'.EXT));
+
+			// Load and merge local config if exists
+			if (is_file($local = self::path('root', 'local-config'.EXT)))
+			{
+				$local_params = require($local);
+				self::$params = Util\merge(self::$params, $local_params);
+			}
+		}
 	}
 
 	/**
@@ -82,7 +96,7 @@ class Config
 	 * @param  string $name
 	 * @return string
 	 */
-	public static function path ($name, $append = null)
+	public static function path($name, $append = null)
 	{
 		if ($path = self::$paths[$name])
 		{
