@@ -691,11 +691,11 @@ class Helper
 			 * Asset URL path helper
 			 *
 			 *		Usage example:
-			 *			{asset_url for="//template/some/asset/path"}
+			 *			{asset_url to="//template/some/asset/path"}
 			 */
 			'asset_url' => function ($params)
 			{
-				$asset_url = is_array($params) ? $params['for'] : $params;
+				$asset_url = is_array($params) ? $params['to'] : $params;
 
 				$request = Template::engine()->get('request');
 
@@ -707,7 +707,7 @@ class Helper
 
 				$request = Template::route($request);
 
-				$asset_path = $request['template'].'/assets'.$asset_url;
+				$asset_path = $request['template'].'/assets/'.ltrim($asset_url, '/');
 				$asset_url = Config::path('templates', $asset_path);
 				$asset_url = str_replace(Config::path('root'), '', $asset_url);
 
