@@ -84,7 +84,7 @@ namespace Forward
 				'client_key' => $client_key ?: $options['client_key'],
 				'version' => $options['version'] ?: 1,
 				'session' => $options['session'] ?: session_id(),
-				'app' => $options['app']
+				'api' => $options['api']
 			);
 		}
 
@@ -218,9 +218,9 @@ namespace Forward
 			{
 				$creds['$v'] = $this->params['version'];
 			}
-			if ($this->params['app'])
+			if ($this->params['api'])
 			{
-				$creds['$app'] = $this->params['app'];
+				$creds['$api'] = $this->params['api'];
 			}
 			if ($this->params['session'])
 			{
