@@ -228,6 +228,7 @@ class Request
 		$uri_parts = parse_url($_SERVER['REQUEST_URI']);
 
 		$default_parts = array(
+			'scheme' => $_SERVER['HTTPS'] ? 'https' : 'http',
 			'host' => $_SERVER['HTTP_HOST'],
 			'path' => $uri_parts['path'],
 			'query' => $uri_parts['query']
@@ -235,7 +236,8 @@ class Request
 
 		$parts = array_merge($default_parts, $parts);
 
-		$sane_url = http_build_url($url, $parts);
+		$sane_url = "{$parts['scheme']}://{$parts['host']}{$parts['path']}"
+			.($parts['query'] ? '?'.$parts['query'] : '');
 
 		return $sane_url;
 	}
