@@ -324,6 +324,9 @@ class Request
 		// TODO: make this a client setting
 		setlocale(LC_ALL, "en_US.UTF-8");
 
+		// TODO: make this a client setting
+		date_default_timezone_set(date_default_timezone_get());
+
 		// Restore persisted request vars
 		Request::restore();
 
