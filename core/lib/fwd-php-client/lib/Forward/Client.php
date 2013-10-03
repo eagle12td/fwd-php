@@ -111,6 +111,8 @@ namespace Forward
 		 */
 		public function request($method, $url, $data = null)
 		{
+			$url = (string)$url;
+
 			$result = $this->server->remote($method, array($url, $data));
 
 			if ($result['$auth'])
@@ -119,24 +121,31 @@ namespace Forward
 				$result = $this->auth($result['$auth']);
 			}
 
-			return $this->response($url, $result);
+			return $this->response($method, $url, $result);
 		}
 
 		/**
 		 * Response helper
 		 *
+		 * @param  string $method
+		 * @param  string $url
 		 * @param  mixed $result
 		 * @return Forward\Resource
 		 */
-		public function response($url, $result)
+		public function response($method, $url, $result)
 		{
 			if ($result['$data'] && is_array($result['$data']))
 			{
+				// TODO: use a header to determine url of a new record
+				if ($method == 'post')
+				{
+					$url = rtrim($url, '/').'/'.$result['$data']['id'];
+				}
 				return Resource::instance($url, $result, $this);
 			}
 			else
 			{
-				// TODO: use a header to branch on Resource vs value?
+				// TODO: use a header to branch on Resource vs value
 				return $result['$data'];
 			}
 		}
