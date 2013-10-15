@@ -14,7 +14,7 @@ if ($params['base_uri'])
 	$start = microtime(true);
 	try {
 		$result = request($params['method'] ?: "GET", $url);
-		$result = $result instanceof Forward\Resource ? $result->dump(true) : $result;
+		$result = $result instanceof Forward\Resource ? $result->dump(true, false) : $result;
 	}
 	catch(Forward\ServerException $e)
 	{

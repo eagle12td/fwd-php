@@ -20,7 +20,7 @@
 	<br />
 	<code>
 		<span>{$params.method|upper} {$index.url} ({$index.timing|round:3} seconds)</span>
-		{$index.result|dump}
+		<pre>{$index.result|json_print}</pre>
 	</code>
 {/if}
 

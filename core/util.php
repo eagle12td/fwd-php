@@ -737,3 +737,69 @@ function money($amount, $format = true, $negative = true, $locale = null)
 
 	return $result;
 }
+
+/**
+ * Format a JSON string by applying newlines and indentation
+ *
+ * @param  string $json
+ * @param  string $indent (optional)
+ * @return string
+ */
+function json_print($json, $indent = null)
+{
+	$indent = $indent ?: '    ';
+
+	$result = '';
+	$pos = 0;
+	$newline = "\n";
+	$prev_char = '';
+	$out_of_quotes = true;
+
+	// Auto convert to json string
+	if (!is_string($json))
+	{
+		$json = json_encode($json);
+	}
+
+	// Unescape slashes
+	$json = str_replace('\/', '/', $json);
+
+	for ($i = 0; $i <= strlen($json); $i++)
+	{
+		$char = substr($json, $i, 1);
+
+		if ($char == '"' && $prev_char != '\\')
+		{
+			$out_of_quotes = !$out_of_quotes;
+		}
+		else if (($char == '}' || $char == ']') && $out_of_quotes)
+		{
+			$result .= $newline;
+			$pos--;
+			for ($j=0; $j<$pos; $j++)
+			{
+				$result .= $indent;
+			}
+		}
+
+		$result .= $char;
+
+		if (($char == ',' || $char == '{' || $char == '[') && $out_of_quotes)
+		{
+			$result .= $newline;
+			if ($char == '{' || $char == '[')
+			{
+				$pos++;
+			}
+
+			for ($j = 0; $j < $pos; $j++)
+			{
+				$result .= $indent;
+			}
+		}
+
+		$prev_char = $char;
+	}
+
+	return $result;
+}

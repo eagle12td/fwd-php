@@ -653,7 +653,7 @@ class Helper
 			 *
 			 * {"LongNameForExample"|underscore} # long_name_for_example
 			 */
-			'underscore' => function ($params)
+			'underscore' => function($params)
 			{
 				if (is_string($params))
 				{
@@ -673,7 +673,7 @@ class Helper
 			 *		Usage example:
 			 *			{"/channels/blogs/entries/{$blog_slug}/content"|get|markdown}
 			 */
-			'markdown' => function ($text)
+			'markdown' => function($text)
 			{
 				// Setup static parser.
 				static $parser;
@@ -693,7 +693,7 @@ class Helper
 			 *		Usage example:
 			 *			{asset_url to="//template/some/asset/path"}
 			 */
-			'asset_url' => function ($params)
+			'asset_url' => function($params)
 			{
 				$asset_url = is_array($params) ? $params['to'] : $params;
 
@@ -712,6 +712,15 @@ class Helper
 				$asset_url = str_replace(Config::path('root'), '', $asset_url);
 
 				return $asset_url;
+			},
+
+			/**
+			 *
+			 *
+			 */
+			'json_print' => function($json, $indent = null)
+			{
+				return Util\json_print($json, $indent);
 			}
 		);
 	}
