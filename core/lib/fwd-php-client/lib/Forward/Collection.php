@@ -146,7 +146,7 @@ namespace Forward
 
 							if ($link_record instanceof Resource)
 							{
-								$dump['results'][$key][$field] = $link_record->dump(true, false, $depth+1);
+								$dump['results'][$key]['$links'][$field] = $link_record->dump(true, false, $depth+1);
 								continue;
 							}
 						}
@@ -155,7 +155,7 @@ namespace Forward
 							$link_record = $record->link_url($field);
 						}
 						
-						$dump['results'][$key][$field] = (string)$link_record;
+						$dump['results'][$key]['$links'][$field] = (string)$link_record;
 					}
 				}
 			}

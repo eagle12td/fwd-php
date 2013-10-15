@@ -30,6 +30,15 @@ namespace Forward
 		{
 			if ($header_links = $this->links())
 			{
+				if ($field === '$links')
+				{
+					$links = array();
+					foreach ($header_links as $key => $link)
+					{
+						$links[$key] = $this->link_url($key);
+					}
+					return $links;
+				}
 				if (!array_key_exists($field, (array)$this->links) && isset($header_links[$field]))
 				{
 					$_links = $this->links;
@@ -89,7 +98,7 @@ namespace Forward
 
 					if ($related instanceof Resource)
 					{
-						$dump[$key] = $related->dump(true, false, $depth+1);
+						$dump['$links'][$key] = $related->dump(true, false, $depth+1);
 						continue;
 					}
 				}
@@ -98,7 +107,7 @@ namespace Forward
 					$related = $this->link_url($key);
 				}
 
-				$dump[$key] = (string)$related;
+				$dump['$links'][$key] = (string)$related;
 			}
 
 			return $print ? print_r($dump, $return) : $dump;
