@@ -782,6 +782,7 @@ function json_print($json, $indent = null)
 			}
 		}
 
+
 		$result .= $char;
 
 		if (($char == ',' || $char == '{' || $char == '[') && $out_of_quotes)
@@ -796,6 +797,11 @@ function json_print($json, $indent = null)
 			{
 				$result .= $indent;
 			}
+		}
+
+		if (($char == ':') && $out_of_quotes)
+		{
+			$result .= ' ';
 		}
 
 		$prev_char = $char;
