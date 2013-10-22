@@ -564,7 +564,7 @@ class Helper
 
 				if (Template::engine()->depth() > 0)
 				{
-					$hidden_view = "/_".substr($view['view'], 1);
+					$hidden_view = preg_replace('/([^\/]+)$/', '/_$1', $view['view']);
 					$hidden_view_path = $view_request['template_path']
 						.'/views'.$hidden_view.'.'.$view['output'];
 					if (is_file($hidden_view_path))
