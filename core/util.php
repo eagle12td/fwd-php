@@ -758,6 +758,7 @@ function json_print($json, $indent = null)
 	// Auto convert to json string
 	if (!is_string($json))
 	{
+		// Note: will consider empty arrays as array vs object
 		$json = json_encode($json);
 	}
 
@@ -781,7 +782,6 @@ function json_print($json, $indent = null)
 				$result .= $indent;
 			}
 		}
-
 
 		$result .= $char;
 
