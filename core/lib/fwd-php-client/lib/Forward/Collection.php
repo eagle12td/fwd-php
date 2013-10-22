@@ -146,18 +146,19 @@ namespace Forward
 
 							if ($link_record instanceof Resource)
 							{
-								$dump['results'][$key]['$links'][$field] = $link_record->dump(true, false, $depth+1);
-								continue;
+								$dump['results'][$key][$field] = $link_record->dump(true, false, $depth+1);
+							}
+							else
+							{
+								$dump['results'][$key][$field] = $link_record;
 							}
 						}
-						else
-						{
-							$link_record = $record->link_url($field);
-						}
-						
-						$dump['results'][$key]['$links'][$field] = (string)$link_record;
 					}
 				}
+			}
+			if ($links = $this->links())
+			{
+				$dump['$links'] = $links;
 			}
 			if ($dump['count'] > 0)
 			{

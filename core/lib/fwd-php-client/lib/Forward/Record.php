@@ -87,7 +87,8 @@ namespace Forward
 			
 			foreach ($this->links() as $key => $link)
 			{
-				if ($depth < 1) {
+				if ($depth < 1)
+				{
 					try {
 						$related = $this->{$key};
 					}
@@ -98,16 +99,17 @@ namespace Forward
 
 					if ($related instanceof Resource)
 					{
-						$dump['$links'][$key] = $related->dump(true, false, $depth+1);
-						continue;
+						$dump[$key] = $related->dump(true, false, $depth+1);
+					}
+					else
+					{
+						$dump[$key] = $related;
 					}
 				}
-				else
-				{
-					$related = $this->link_url($key);
-				}
-
-				$dump['$links'][$key] = (string)$related;
+			}
+			if ($links = $this->links())
+			{
+				$dump['$links'] = $links;
 			}
 
 			return $print ? print_r($dump, $return) : $dump;

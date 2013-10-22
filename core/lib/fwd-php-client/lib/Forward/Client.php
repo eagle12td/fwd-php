@@ -237,7 +237,7 @@ namespace Forward
 			}
 			if ($address = $_SERVER['REMOTE_ADDR'] ?: $_SERVER['REMOTE_ADDR'])
 			{
-				$creds['$address'] = $address;
+				$creds['$ip'] = $address;
 			}
 			
 			return $this->server->remote('auth', array($creds));
