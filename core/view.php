@@ -8,7 +8,7 @@ class View
 	 * @param  array $request
 	 * @return array
 	 */
-	public static function route ($request)
+	public static function route($request)
 	{
 		$result = self::route_path($request);
 
@@ -26,7 +26,7 @@ class View
 	 * @param  array $request
 	 * @return array
 	 */
-	public static function resolve ($request)
+	public static function resolve($request)
 	{
 		$route_path = $request['path'];
 		$template_path = $request['template_path'];
@@ -41,7 +41,7 @@ class View
 		else
 		{
 			$view = $route_path;
-			$view_output = 'html';
+			$view_output = $request['output'] ?: 'html';
 		}
 		if ($view)
 		{
@@ -67,7 +67,7 @@ class View
 	 * @param  string template_path
 	 * @return array
 	 */
-	private static function route_path ($request)
+	private static function route_path($request)
 	{
 		$view = self::resolve($request);
 		$view_output = $view['output'];
@@ -88,16 +88,20 @@ class View
 
 			// Try different view paths
 			$views = array(
+				"{$test_path}.{$view_output}",
 				"{$test_path}/index.{$view_output}",
-				"/index{$test_path}.{$view_output}",
-				"{$test_path}.{$view_output}"
+				"/index{$test_path}.{$view_output}"
 			);
-			if (Template::engine()->depth() > 0)
+
+			// Try hidden paths for nested views
+			if (true || Template::engine()->depth() > 0)
 			{
 				$test_path_hidden = preg_replace('/\/([^\/]+)$/', '/_$1', $test_path);
-				array_unshift($views, "{$test_path_hidden}.{$view_output}");
-				array_unshift($views, "/index{$test_path_hidden}.{$view_output}");
+				array_push($views, "{$test_path_hidden}.{$view_output}");
+				array_push($views, "/index{$test_path_hidden}.{$view_output}");
 			}
+
+			$found = false;
 			foreach ($views as $view)
 			{
 				$view_path = $template_path.'/views'.$view;
@@ -105,17 +109,19 @@ class View
 				// Does view file exist?
 				if (is_file($view_path) && ($view_orig ? $view_orig == $view : !$view_orig))
 				{
+					$found = true;
 					break(2);
-				}
-				else if ($view_orig)
-				{
-					$view = $view_orig;
-					$view_path = $template_path.'/views'.$view;
 				}
 			}
 
 			// Put test part in args
 			array_unshift($view_args, $part);
+		}
+
+		if ($found === false)
+		{
+			$view = $view_orig ?: $views[0];
+			$view_path = $template_path.'/views'.$view;
 		}
 
 		return array(
@@ -132,7 +138,7 @@ class View
 	 * @param  array $request
 	 * @return string
 	 */
-	public static function render ($request)
+	public static function render($request)
 	{
 		$vars = array(
 			'request' => &$request,
@@ -153,17 +159,17 @@ class View
 	 * @param  array $vars
 	 * @return string
 	 */
-	private static function render_content ($request, &$vars)
+	private static function render_content($request, &$vars)
 	{
-		// TODO: render $request['header']
-		// if ($request['header'])
-		// { $header = Template::engine()->render($request['header_path'], &$vars) }
-		$content = Template::engine()->render($request['view_path'], &$vars);
-		// TODO: render $request['footer']
-		// if ($request['footer'])
-		// { $footer = Template::engine()->render($request['footer_path'], &$vars) }
+		$content = "";
 
-		//return $header.$content.$footer;
+		$php_path = preg_replace('/\.([^\.]+)$/', '.php', $request['view_path']);
+		if ($request['output'] != 'php' && is_file($php_path))
+		{
+			$content .= Template::engine()->render($php_path, &$vars);
+		}
+
+		$content .= Template::engine()->render($request['view_path'], &$vars);
 		return $content;
 	}
 
@@ -174,7 +180,7 @@ class View
 	 * @param  array $request
 	 * @return string
 	 */
-	private static function render_layout ($content, $request, $vars)
+	private static function render_layout($content, $request, $vars)
 	{
 		if (array_key_exists('layout', $request) && !$request['layout'])
 		{
@@ -207,7 +213,7 @@ class View
 	 * @param  closure $callback
 	 * @return mixed
 	 */
-	public static function on ($method, $request_match, $callback = null)
+	public static function on($method, $request_match, $callback = null)
 	{
 		// TODO: on() should auto-defer callback execution until request is run (or if in middle of one)
 		$request = Template::engine()->get('request');

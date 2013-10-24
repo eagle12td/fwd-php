@@ -164,6 +164,37 @@ class TemplateEngine
 	}
 
 	/**
+	 * Render a php template file
+	 *
+	 * @param  string $file_path
+	 * @return string
+	 */
+	private function render_php($file_path)
+	{
+		$result = null;
+		$tpl_vars = $this->get();
+
+		$render_php = function ($file_path) use (&$result, &$tpl_vars)
+		{
+			ob_start();
+			extract($tpl_vars, EXTR_REFS);
+			$result = require($file_path);
+			return ob_get_clean();
+		};
+
+		$content = $render_php($file_path);
+
+		// int(1) is returned by default
+		if ($result && $result !== 1)
+		{
+			$this->result($result);
+		}
+		$this->set($tpl_vars);
+
+		return $content;
+	}
+
+	/**
 	 * Create a template object for rendering
 	 *
 	 * @return Smarty_Template
@@ -219,34 +250,14 @@ class TemplateEngine
 	}
 
 	/**
-	 * Render a php template file
+	 * Get template stack
 	 *
-	 * @param  string $file_path
-	 * @return string
+	 * @param  int $index
+	 * @return array
 	 */
-	private function render_php($file_path)
+	public function templates($index = null)
 	{
-		$result = null;
-		$tpl_vars = $this->get();
-
-		$render_php = function ($file_path) use (&$result, &$tpl_vars)
-		{
-			ob_start();
-			extract($tpl_vars, EXTR_REFS);
-			$result = require($file_path);
-			return ob_get_clean();
-		};
-
-		$content = $render_php($file_path);
-
-		// int(1) is returned by default
-		if ($result && $result !== 1)
-		{
-			$this->result($result);
-		}
-		$this->set($tpl_vars);
-
-		return $content;
+		return $index === false ? $this->templates : $this->templates[$index];
 	}
 
 	/**

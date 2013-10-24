@@ -547,8 +547,10 @@ class Helper
 			 *				array('arg1' => $x, 'arg2' => $y)
 			 *			);
 			 */
-			'render' => function($params, $vars = null, $return_vars = false)
+			'render' => function($params, $vars = null, $return_vars = false, $smarty = null)
 			{
+				$result = "";
+				$view_found = false;
 				$request = Template::engine()->get('request');
 				$view_request = $request;
 
@@ -563,32 +565,65 @@ class Helper
 					$vars = $params;
 				}
 
-				// TODO: implement //template/pathing.html relative to all templates
-
-				$view = View::resolve($view_request);
-				$view_path = $view_request['template_path']
-					.'/views'.$view['view'].'.'.$view['output'];
-
-				if (Template::engine()->depth() > 0)
+				// Handle relative and absolute paths
+				if (substr($view_request['path'], 0, 2) === '//')
 				{
-					$hidden_view = preg_replace('/([^\/]+)$/', '/_$1', $view['view']);
-					$hidden_view_path = $view_request['template_path']
-						.'/views'.$hidden_view.'.'.$view['output'];
-					if (is_file($hidden_view_path))
-					{
-						return Template::engine()->render($hidden_view_path, $vars, $return_vars);
-					}
+					$template_name = substr($view_request['path'], 2);
+					$template_name = substr($template_name, 0, strpos($template_name, '/'));
+					$view_request['path'] = substr($view_request['path'], strpos($view_request['path'], '/', 2));
+					$view_request['template_path'] = preg_replace('/\/[^\/]+$/', '/'.$template_name, $view_request['template_path']);
+					
 				}
-				
+				else if ($view_request['path'][0] !== '/')
+				{
+					$parent_tpl = Template::engine()->templates(0)->template_resource;
+					$parent_path = str_replace($view_request['template_path'].'/views', '', $parent_tpl);
+					$view_request['path'] = preg_replace('/\/[^\/]+$/', '/'.$view_request['path'], $parent_path);
+				}
+
+				// Try public pathing
+				$view = View::resolve($view_request);
+				$view_path = $view_request['template_path'].'/views'.$view['view'].'.'.$view['output'];
+				$php_path = preg_replace('/\.([^\.]+)$/', '.php', $view_path);
+
 				if (is_file($view_path))
 				{
-					return Template::engine()->render($view_path, $vars, $return_vars);
+					if ($view['output'] != 'php' && is_file($php_path))
+					{
+						$result .= Template::engine()->render($php_path, $vars, $return_vars);
+					}
+					$result .= Template::engine()->render($view_path, $vars, $return_vars);
+					$view_found = true;
+				}
+				else if (Template::engine()->depth() > 0)
+				{
+					// Try hidden pathing
+					$hidden_view = preg_replace('/([^\/]+)$/', '/_$1', $view['view']);
+					$hidden_view_path = $view_request['template_path'].'/views'.$hidden_view.'.'.$view['output'];
+					$hidden_php_path = preg_replace('/\.([^\.]+)$/', '.php', $hidden_view_path);
+
+					if (is_file($hidden_view_path))
+					{
+						if ($view['output'] != 'php' && is_file($hidden_php_path))
+						{
+							$result .= Template::engine()->render($php_path, $vars, $return_vars);
+						}
+						$result .= Template::engine()->render($hidden_view_path, $vars, $return_vars);
+						$view_found = true;
+					}
 				}
 
-				if (!isset($params['required']) || $params['required'])
+				if (!$view_found && (!isset($params['required']) || $params['required']))
 				{
+
+					echo "<pre>";
+					$parent_tpl = Template::engine()->templates(0);
+					var_dump($view_path);
+					var_dump($parent_tpl->template_resource);exit;
 					throw new \Exception("render(): View not found at {$view_path}");
 				}
+
+				return $result;
 			},
 
 			/**
