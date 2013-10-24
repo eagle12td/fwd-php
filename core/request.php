@@ -368,23 +368,23 @@ class Request
 		{
 			require_once(Config::path('core', 'lib/fwd-php-client/lib/Forward.php'));
 
-      			$config = Config::get(array(
-      				'client_host',
-      				'client_port',
-      				'client_id',
-      				'client_key',
-      				'client_version',
-      				'client_api',
-      				'clients'
-      			));
-      			if (self::$vars['client'])
-      			{
-      				$client = $config['clients'][self::$vars['client']];
-      				foreach ($client as $key => $val)
-      				{
-      					$config[$key] = $val;
-      				}
-      			}
+			$config = Config::get(array(
+				'client_host',
+				'client_port',
+				'client_id',
+				'client_key',
+				'client_version',
+				'client_api',
+				'clients'
+			));
+			if (self::$vars['client'])
+			{
+				$client = $config['clients'][self::$vars['client']];
+				foreach ($client as $key => $val)
+				{
+					$config[$key] = $val;
+				}
+			}
 			self::$client = new \Forward\Client($config['client_id'], $config['client_key'], array(
 				'host' => $config['client_host'],
 				'port' => $config['client_port'],

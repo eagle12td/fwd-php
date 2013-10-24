@@ -319,6 +319,8 @@ class Helper
 			 */
 			'flash' => function($params)
 			{
+				$request = Template::engine()->get('request');
+
 				if (is_array($params))
 				{
 					$redirect = $params['redirect'] ?: ($params['refresh'] ? $_SERVER['REQUEST_URI'] : null);
@@ -326,22 +328,27 @@ class Helper
 					if ($params['error'])
 					{
 						Request::message('error', $params['error'], $redirect);
+						$request['errors'][] = $params['error'];
 					}
 					if ($params['warning'])
 					{
 						Request::message('warning', $params['warn'], $redirect);
+						$request['warnings'][] = $params['warn'];
 					}
 					if ($params['notice'])
 					{
 						Request::message('notice', $params['notice'], $redirect);
+						$request['notices'][] = $params['notice'];
 					}
 				}
 				else if (is_string($params))
 				{
-					Request::message('notice', $params);
+					$notice = $params;
+					Request::message('notice', $notice);
+					$request['notices'][] = $notice;
 				}
 
-				return;
+				Template::engine()->set('request', $request);
 			},
 
 			/**
@@ -715,12 +722,25 @@ class Helper
 			},
 
 			/**
+			 * Pretty print variable or JSON string as formatted JSON
 			 *
-			 *
+			 *		Usage example:
+			 *			<pre>{$some_variable|json_print}</pre>
 			 */
 			'json_print' => function($json, $indent = null)
 			{
 				return Util\json_print($json, $indent);
+			},
+
+			/**
+			 * Determine whether a variable is not empty, properly considering "0"
+			 *
+			 *		Usage example:
+			 *			{"0"|not_empty} # true
+			 */
+			'not_empty' => function($value)
+			{
+				return $value || $value === "0";
 			}
 		);
 	}
