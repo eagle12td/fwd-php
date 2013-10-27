@@ -63,7 +63,7 @@ class Request
 			throw new \Exception("View not found at {$request['view_path']}", 404);
 		}
 
-		self::$vars = array_merge((array)self::$vars, $request);
+		$request = self::$vars = array_merge((array)self::$vars, $request);
 
 		$view_result = View::render($request);
 
