@@ -1,4 +1,6 @@
-{$index = extend("/api/index.php")}
+{extend "index.php"}
+
+{$index = $request.index}
 
 <form role="form" method="get" action="" class="form-inline">
 	<select name="method" class="form-control" style="width:90px">
