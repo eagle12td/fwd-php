@@ -581,17 +581,14 @@ class Helper
 					$view_request['path'] = preg_replace('/\/[^\/]+$/', '/'.$view_request['path'], $parent_path);
 				}
 
+				// TODO: make ../../ pathing work
+
 				// Try public pathing
 				$view = View::resolve($view_request);
 				$view_path = $view_request['template_path'].'/views'.$view['view'].'.'.$view['output'];
-				$php_path = preg_replace('/\.([^\.]+)$/', '.php', $view_path);
 
 				if (is_file($view_path))
 				{
-					if ($view['output'] != 'php' && is_file($php_path))
-					{
-						$result .= Template::engine()->render($php_path, $vars, $return_vars);
-					}
 					$result .= Template::engine()->render($view_path, $vars, $return_vars);
 					$view_found = true;
 				}
@@ -600,14 +597,9 @@ class Helper
 					// Try hidden pathing
 					$hidden_view = preg_replace('/([^\/]+)$/', '/_$1', $view['view']);
 					$hidden_view_path = $view_request['template_path'].'/views'.$hidden_view.'.'.$view['output'];
-					$hidden_php_path = preg_replace('/\.([^\.]+)$/', '.php', $hidden_view_path);
 
 					if (is_file($hidden_view_path))
 					{
-						if ($view['output'] != 'php' && is_file($hidden_php_path))
-						{
-							$result .= Template::engine()->render($php_path, $vars, $return_vars);
-						}
 						$result .= Template::engine()->render($hidden_view_path, $vars, $return_vars);
 						$view_found = true;
 					}
@@ -615,12 +607,11 @@ class Helper
 
 				if (!$view_found && (!isset($params['required']) || $params['required']))
 				{
-
-					echo "<pre>";
-					$parent_tpl = Template::engine()->templates(0);
-					var_dump($view_path);
-					var_dump($parent_tpl->template_resource);exit;
-					throw new \Exception("render(): View not found at {$view_path}");
+					$tpl_path = Config::path('templates');
+					$parent_path = Template::engine()->templates(0)->template_resource;
+					$view_path = str_replace($tpl_path, '', $view_path);
+					$parent_path = str_replace($tpl_path, '', $parent_path);
+					throw new \Exception("render(): View not found at {$view_path} (in {$parent_path})");
 				}
 
 				return $result;

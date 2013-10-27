@@ -30,15 +30,15 @@ class Request
 	 * Dispatch a request
 	 *
 	 * @param  mixed $url
+	 * @param  array $routes
 	 * @param  bool $return
 	 * @return mixed
 	 */
-	public static function dispatch($url = null, $return = false)
+	public static function dispatch($url = null, $routes = null, $return = false)
 	{
 		// Sanitize and parse request
-		$url = self::url($url);
 		$request = self::parse($url);
-		$request = self::route($request, Config::get('routes'));
+		$request = self::route($request, $routes ?: Config::get('routes'));
 
 		// Route the template
 		$request = Template::route($request);
@@ -63,7 +63,7 @@ class Request
 			throw new \Exception("View not found at {$request['view_path']}", 404);
 		}
 
-		$request = self::$vars = array_merge($request, (array)self::$vars);
+		self::$vars = array_merge((array)self::$vars, $request);
 
 		$view_result = View::render($request);
 
@@ -206,12 +206,15 @@ class Request
 	{
 		self::persist();
 
+		$url = Event::trigger('request', 'redirect', $url);
+
 		if (self::$vars['ajax'])
 		{
 			$url .= (strpos($url, '?') === false ? '?__ajax' : '&__ajax');
 		}
 
 		header("Location : {$url}", true, $permanent ? 301 : 302);
+
 		die();
 	}
 
@@ -225,7 +228,7 @@ class Request
 	public static function url($url, $parts = array())
 	{
 		// TODO: determine if this comes with cURL or if it needs to be replaced
-		$uri_parts = parse_url($_SERVER['REQUEST_URI']);
+		$uri_parts = parse_url($url ?: $_SERVER['REQUEST_URI']);
 
 		$default_parts = array(
 			'scheme' => $_SERVER['HTTPS'] ? 'https' : 'http',
@@ -250,6 +253,7 @@ class Request
 	 */
 	public static function parse($url)
 	{
+		$url = self::url($url);
 		$request = parse_url($url);
 
 		// Parse base uri path

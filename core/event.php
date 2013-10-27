@@ -9,6 +9,12 @@ class Event
 	private static $events;
 
 	/**
+	 * Flag to stop event chain
+	 * @var bool
+	 */
+	private static $stop;
+
+	/**
 	 * Bind callback to an event
 	 *
 	 * @param  string $target
@@ -17,7 +23,7 @@ class Event
 	 * @param  int $level
 	 * @return bool
 	 */
-	public static function bind ($target, $event, $callback = null, $level = 1)
+	public static function bind($target, $event, $callback = null, $level = 1)
 	{
 		if (is_null($callback))
 		{
@@ -65,11 +71,15 @@ class Event
 	}
 
 	/**
-	 * Bind event formatter.
+	 * Bind event formatter
+	 *
+	 * @param  string $target
+	 * @param  string $event
+	 * @return array
 	 */
-	public static function parse_bind_events ($target, $event = null)
+	public static function parse_bind_events($target, $event)
 	{
-		// Event arg optionally combined with target.
+		// Event arg optionally combined with target
 		if (is_null($event))
 		{
 			$event = $target;
@@ -77,13 +87,13 @@ class Event
 		}
 		else
 		{
-			// Convert object to class string.
+			// Convert object to class string
 			if (is_object($target))
 			{
 				$target = get_class($target);
 			}
 
-			// Target is case insensitive.
+			// Target is case insensitive
 			if (is_string($target))
 			{
 				$target = strtolower($target);
@@ -102,7 +112,7 @@ class Event
 				// Target specified before '.'
 				$target_parts = explode('.', $event);
 
-				// Combine remaining '.' into event string.
+				// Combine remaining '.' into event string
 				if ($target_parts[1])
 				{
 					$key = array_shift($target_parts);
@@ -116,16 +126,16 @@ class Event
 			}
 			else
 			{
-				// Target as event key.
+				// Target as event key
 				$key = $target;
 			}
 
-			// Determine pre value.
+			// Determine pre value
 			$pre_parts = explode(':', $event);
 			$name = $pre_parts[1] ?: $pre_parts[0];
 			$pre = $pre_parts[1] ? $pre_parts[0] : 'on';
 
-			// Save parsed event.
+			// Save parsed event
 			$parsed_events[] = array(
 				'key' => $key,
 				'pre' => $pre,
@@ -137,15 +147,15 @@ class Event
 	}
 
 	/**
-	 * Return value from bind callback and cancel trigger chain.
-	 *
+	 * Return value from bind callback and cancel trigger chain
 	 *
 	 * @param  mixed $result
 	 * @return mixed
 	 */
-	public static function stop ($result = null)
+	public static function stop($result = null)
 	{
-		self::$bind_stop = true;
+		self::$stop = true;
+		
 		return $result;
 	}
 
@@ -156,9 +166,8 @@ class Event
 	 * @param  string $event
 	 * @return mixed
 	 */
-	public static function trigger ($target, $event = null)
+	public static function trigger($target, $event)
 	{
-		// Get args.
 		$args = array_slice(func_get_args(), 2);
 
 		$events = self::parse_bind_events($target, $event);
@@ -167,11 +176,9 @@ class Event
 			$key = $event['key'];
 			$pre = $event['pre'];
 			$name = $event['name'];
-
-			// Prep args.
 			$result = count($args) ? $args[0] : 0;
 
-			// If pre is 'on', trigger 'before' binds first.
+			// If pre is 'on', trigger 'before' binds first
 			if ($pre == 'on')
 			{
 				$pre_set = array('before', 'on');
@@ -181,16 +188,17 @@ class Event
 				$pre_set = array($pre);
 			}
 
-			// Reset cancel trigger.
-			self::$bind_stop = false;
+			// Reset cancel trigger
+			self::$stop = false;
 
-			// Trigger callback[s].
+			// Trigger callback[s]
 			foreach ($pre_set as $pre)
 			{
 				foreach ((array)self::$events[$key][$pre][$name] as $event_level)
 				{
 					foreach ((array)$event_level as $callback)
 					{
+						// TODO: use reflection to detect callback arg count
 						$return = call_user_func_array($callback, $args);
 
 						// Stop propagation?
@@ -199,7 +207,7 @@ class Event
 							return false;
 						}
 
-						// Chain result.
+						// Chain result
 						if (count($args))
 						{
 							$result = isset($return) ? ($args[0] = $return) : $args[0];
@@ -210,9 +218,9 @@ class Event
 						}
 
 						// Stop chain?
-						if (self::$bind_stop)
+						if (self::$stop)
 						{
-							self::$bind_stop = false;
+							self::$stop = false;
 							return $return;
 						}
 					}

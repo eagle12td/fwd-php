@@ -17,10 +17,48 @@ class Template
 	public static function route($request)
 	{
 		$request['template'] = $request['template'] ?: Config::get('defaults.template', 'default');
-		$tpl_config = self::config($request['template']);
+		$config = self::config($request['template']);
 
-		$request = Request::route($request, $tpl_config['routes']);
+		$request = Request::route($request, $config['routes']);
 		$request['template_path'] = Config::path('templates', $request['template']);
+
+		return $request;
+	}
+
+	/**
+	 * Route extended template by config
+	*
+	* @param  array $request
+	* @param  string $extends
+	* @return array
+	*/
+	private static function route_extended($request, $extends)
+	{
+		$template = $request['template'];
+
+		static $extended;
+		if (!isset($extended[$template]))
+		{
+			$extended[$template] = true;
+		}
+		else
+		{
+			throw new \Exception("Recursive template extension ({$template} >> {$extends})");
+		}
+
+		$extend_request = $request;
+		$extend_request['template'] = $extends;
+		$extend_request = self::route($extend_request);
+
+		$request['extend_template_path'] = $extend_request['template_path'];
+
+		if ($request['config']['routes'])
+		{
+			$request['config']['routes'] = Util\merge(
+				$extend_request['config']['routes'],
+				$request['config']['routes']
+			);
+		}
 
 		return $request;
 	}
@@ -40,8 +78,10 @@ class Template
 		if (is_file($config_path))
 		{
 			$json = file_get_contents($config_path);
-			return json_decode($json, true);
+			$config = json_decode($json, true);
 		}
+
+		return $config;
 	}
 
 	/**
@@ -174,7 +214,7 @@ class TemplateEngine
 		$result = null;
 		$tpl_vars = $this->get();
 
-		$render_php = function ($file_path) use (&$result, &$tpl_vars)
+		$render_php = function($file_path) use (&$result, &$tpl_vars)
 		{
 			ob_start();
 			extract($tpl_vars, EXTR_REFS);

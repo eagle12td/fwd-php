@@ -94,7 +94,7 @@ class View
 			);
 
 			// Try hidden paths for nested views
-			if (true || Template::engine()->depth() > 0)
+			if (Template::engine()->depth() > 0)
 			{
 				$test_path_hidden = preg_replace('/\/([^\/]+)$/', '/_$1', $test_path);
 				array_push($views, "{$test_path_hidden}.{$view_output}");
@@ -161,15 +161,7 @@ class View
 	 */
 	private static function render_content($request, &$vars)
 	{
-		$content = "";
-
-		$php_path = preg_replace('/\.([^\.]+)$/', '.php', $request['view_path']);
-		if ($request['output'] != 'php' && is_file($php_path))
-		{
-			$content .= Template::engine()->render($php_path, &$vars);
-		}
-
-		$content .= Template::engine()->render($request['view_path'], &$vars);
+		$content = Template::engine()->render($request['view_path'], &$vars);
 		return $content;
 	}
 
