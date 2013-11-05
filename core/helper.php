@@ -552,7 +552,7 @@ class Helper
 				$result = "";
 				$view_found = false;
 				$request = Template::engine()->get('request');
-				$view_request = $request;
+				$view_request = $orig_request = $request;
 
 				if (is_string($params))
 				{
@@ -570,6 +570,7 @@ class Helper
 				{
 					$template_name = substr($view_request['path'], 2);
 					$template_name = substr($template_name, 0, strpos($template_name, '/'));
+					$view_request['template'] = $template_name;
 					$view_request['path'] = substr($view_request['path'], strpos($view_request['path'], '/', 2));
 					$view_request['template_path'] = preg_replace('/\/[^\/]+$/', '/'.$template_name, $view_request['template_path']);
 					
@@ -585,7 +586,9 @@ class Helper
 
 				// Try public pathing
 				$view = View::resolve($view_request);
-				$view_path = $view_request['template_path'].'/views'.$view['view'].'.'.$view['output'];
+				$view_path = $view_request['view_path'] = $view_request['template_path'].'/views'.$view['view'].'.'.$view['output'];
+
+				Template::engine()->set('request', $view_request);
 
 				if (is_file($view_path))
 				{
@@ -611,8 +614,17 @@ class Helper
 					$parent_path = Template::engine()->templates(0)->template_resource;
 					$view_path = str_replace($tpl_path, '', $view_path);
 					$parent_path = str_replace($tpl_path, '', $parent_path);
+
 					throw new \Exception("render(): View not found at {$view_path} (in {$parent_path})");
 				}
+
+				// Merge with original request paths
+				$view_request = Template::engine()->get('request');
+				$view_request['template'] = $orig_request['template'];
+				$view_request['template_path'] = $orig_request['template_path'];
+				$view_request['view_path'] = $orig_request['view_path'];
+				$view_request['path'] = $orig_request['path'];
+				Template::engine()->set('request', $view_request);
 
 				return $result;
 			},
