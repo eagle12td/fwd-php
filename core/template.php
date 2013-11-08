@@ -440,7 +440,22 @@ class TemplateEngine
 				}
 			),
 
-			// {extend "view" [imports]}
+			// {include "view"} // alias for render
+			'include' => array(
+
+				'type' => 'compiler',
+				'handler' => function ($args, $smarty)
+				{
+					$params = parse_smarty_compile_args($args, array(
+						'tags' => array('view')
+					));
+
+					return '<?php echo render('.serialize_to_php($params).') ?>'
+						.'<?php if (isset($GLOBALS[\'fwd_template_result\'])) { return; } ?>';
+				}
+			),
+
+			// {extend "view"}
 			'extend' => array(
 
 				'type' => 'compiler',

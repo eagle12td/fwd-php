@@ -615,7 +615,7 @@ class Helper
 					$view_path = str_replace($tpl_path, '', $view_path);
 					$parent_path = str_replace($tpl_path, '', $parent_path);
 
-					throw new \Exception("render(): View not found at {$view_path} (in {$parent_path})");
+					throw new \Exception("View not found at {$view_path} (in {$parent_path})");
 				}
 
 				// Merge with original request paths
