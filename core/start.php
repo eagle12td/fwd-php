@@ -1,4 +1,13 @@
-<?php namespace Forward;
+<?php
+/**
+ * Forward // PHP Template Framework
+ *
+ * @version  1.0.2
+ * @link 	 https://getfwd.com
+ * @license  http://www.apache.org/licenses/LICENSE-2.0
+ */
+
+namespace Forward;
 
 /* -----------------------------------------------------
  * Define Constants
@@ -29,6 +38,7 @@ require __DIR__.'/event.php';
 require __DIR__.'/request.php';
 require __DIR__.'/template.php';
 require __DIR__.'/view.php';
+require __DIR__.'/controller.php';
 require __DIR__.'/helper.php';
 require __DIR__.'/plugin.php';
 require __DIR__.'/session.php';

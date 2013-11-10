@@ -1,4 +1,13 @@
-<?php namespace Forward\Util;
+<?php
+/**
+ * Forward // PHP Template Framework
+ *
+ * @version  1.0.2
+ * @link 	 https://getfwd.com
+ * @license  http://www.apache.org/licenses/LICENSE-2.0
+ */
+
+namespace Forward\Util;
 
 /**
  * ArrayInterface enhances ArrayIterator access methods

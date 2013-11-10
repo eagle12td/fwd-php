@@ -1,11 +1,9 @@
 <?php
 /**
- * Forward // Template Framework
+ * Forward // PHP Template Framework
  *
- * @package  php:framework
- * @version  0.2.1
- * @link 	 http://getfwd.com
- *
+ * @version  1.0.2
+ * @link 	 https://getfwd.com
  * @license  http://www.apache.org/licenses/LICENSE-2.0
  */
 

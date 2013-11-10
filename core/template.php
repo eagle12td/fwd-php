@@ -1,4 +1,13 @@
-<?php namespace Forward;
+<?php 
+/**
+ * Forward // PHP Template Framework
+ *
+ * @version  1.0.2
+ * @link 	 https://getfwd.com
+ * @license  http://www.apache.org/licenses/LICENSE-2.0
+ */
+
+namespace Forward;
 
 class Template
 {
@@ -467,6 +476,21 @@ class TemplateEngine
 
 					return '<?php render('.serialize_to_php($params).'); ?>'
 						.'<?php if (isset($GLOBALS[\'fwd_template_result\'])) { return; } ?>';
+				}
+			),
+
+			// {controller "action"}
+			// {controller ["action2", "action2"]}	
+			'controller' => array(
+
+				'type' => 'compiler',
+				'handler' => function ($args, $smarty)
+				{
+					$params = parse_smarty_compile_args($args, array(
+						'tags' => array('invoke')
+					));
+
+					return '<?php controller('.serialize_to_php($params).'); ?>';
 				}
 			),
 

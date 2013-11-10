@@ -1,4 +1,13 @@
-<?php namespace Forward;
+<?php
+/**
+ * Forward // PHP Template Framework
+ *
+ * @version  1.0.2
+ * @link 	 https://getfwd.com
+ * @license  http://www.apache.org/licenses/LICENSE-2.0
+ */
+
+namespace Forward;
 
 class Helper
 {
@@ -639,6 +648,17 @@ class Helper
 			'extend' => function($params, $vars = null)
 			{
 				return render($params, $vars, true);
+			},
+
+			/**
+			 * Invoke a controller
+			 *
+			 *		Usage example:
+			 *			{controller "name"}
+			 */
+			'controller' => function($params)
+			{
+				return Controller::invoke($params['invoke'], $params);
 			},
 
 			/**
