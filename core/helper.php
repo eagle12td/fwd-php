@@ -729,7 +729,7 @@ class Helper
 					return false;
 				}
 
-				return Util\hyphenate($string);
+				return Util\underscore($string);
 			},
 
 			/**
