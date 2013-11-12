@@ -156,7 +156,7 @@ namespace Forward
 					}
 				}
 			}
-			if ($links = $this->links())
+			if ($dump['results'] && $links = $this->links())
 			{
 				$dump['$links'] = $links;
 			}
