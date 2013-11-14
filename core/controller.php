@@ -90,13 +90,17 @@ class Controller
 		}
 
 		$instance = new $class($params);
-
-		$method = $controller['method'] ?: $instance->default_method;
+		$method = $controller['method'] ?: $instance->default;
 
 		if (!is_null($method))
 		{
 			if (!array_key_exists($method, (array)self::$results))
 			{
+				if (!method_exists($instance, $method))
+				{
+					throw new \Exception("Controller method '".$method."()' not defined in ".$controller['class']);
+				}
+
 				foreach ((array)$params as $var => $value)
 				{
 					$vars[$var] = $value;
@@ -107,7 +111,6 @@ class Controller
 				}
 
 				$result = call_user_method_array($method, $instance, array($params));
-
 				foreach ((array)$instance as $var => $value)
 				{
 					$vars[$var] = $value;
