@@ -64,7 +64,8 @@ namespace Forward
 				$record_url = $url."/".$record['id'];
 				self::$links[$record_url] = &self::$links[$parent_url];
 				$result['$data'][$key] = new Record($record_url, array(
-					'$data' => $record
+					'$data' => $record,
+					'$expand' => $result['$expand']
 				));
 			}
 			return $result;
@@ -153,10 +154,12 @@ namespace Forward
 								$dump['results'][$key][$field] = $link_record;
 							}
 						}
+
+						$links[$field] = $link['url'];
 					}
 				}
 			}
-			if ($dump['results'] && $links = $this->links())
+			if ($dump['results'] && $links)
 			{
 				$dump['$links'] = $links;
 			}

@@ -36,6 +36,7 @@ namespace Forward
 		function __construct($url, $result, $client = null)
 		{
 			$this->url = $url;
+			
 			if ($result['$links'])
 			{
 				self::$links[$url] = $result['$links'];
@@ -75,28 +76,6 @@ namespace Forward
 		function __toString()
 		{
 			return (string)$this->url;
-		}
-
-		/**
-		 * Get value of a key
-		 *
-		 * @param  string $key
-		 */
-		function & __get($key)
-		{
-			$result =& $this[$key];
-			return $result;
-		}
-		
-		/**
-		 * Set value of a key
-		 *
-		 * @param  string $key
-		 * @param  mixed $val
-		 */
-		function __set($key, $val)
-		{
-			return parent::offsetSet($key, $val);
 		}
 		
 		/**

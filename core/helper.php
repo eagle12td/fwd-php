@@ -254,43 +254,6 @@ class Helper
 			},
 
 			/**
-			 * Returns a complete list of countries available
-			 * for display and validation purposes.
-			 *
-			 * May be overriden by "countries" setting.
-			 *
-			 *		Usage example:
-			 *			{foreach countries() as $country}
-			 *				{$country.code}
-			 *				{$country.name}
-			 *				{$country.states}
-			 *			{/foreach}
-			 *
-			 *			{$us = "US"|countries}
-			 *			{$us.name} # United States
-			 */
-			'countries' => function($params = null)
-			{
-				// TODO: replace this with API model /countries or /i18n
-
-				$country = is_array($params) ? $params['country'] : $params;
-				$countries = \Forward\I18n\Countries::get();
-
-				if ($country)
-				{
-					foreach ($countries as $co)
-					{
-						if ($co['code'] == $country || $co['name'] == $country)
-						{
-							return $co;
-						}
-					}
-				}
-
-				return $countries;
-			},
-
-			/**
 			 * Dispatch a request
 			 *
 			 *		Usage example:

@@ -710,7 +710,7 @@ function money($amount, $format = true, $negative = true, $locale = null)
 		{
 			// Nevative value.
 			$result = '('.$lc['currency_symbol'].number_format(
-				abs($amount),
+				abs(floatval($amount)),
 				$lc['frac_digits'],
 				$lc['decimal_point'],
 				$lc['thousands_sep']
@@ -720,7 +720,7 @@ function money($amount, $format = true, $negative = true, $locale = null)
 		{
 			// Positive value.
 			$result = $lc['currency_symbol'].number_format(
-				$amount,
+				floatval($amount),
 				$lc['frac_digits'],
 				$lc['decimal_point'],
 				$lc['thousands_sep']
@@ -731,7 +731,7 @@ function money($amount, $format = true, $negative = true, $locale = null)
 	{
 		// Number without currency symbol.
 		$result = number_format(
-			$amount,
+			floatval($amount),
 			$lc['frac_digits'],
 			$lc['decimal_point'],
 			$lc['thousands_sep']

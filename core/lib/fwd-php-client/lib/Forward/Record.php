@@ -18,6 +18,14 @@ namespace Forward
 		function __construct($url, $result, $client = null)
 		{
 			parent::__construct($url, $result, $client);
+
+			if (is_array($result['$expand']))
+			{
+				foreach($result['$expand'] as $field)
+				{
+					$this->links[$field] = $result['$data'][$field];
+				}
+			}
 		}
 		
 		/**
@@ -41,10 +49,8 @@ namespace Forward
 				}
 				if (!array_key_exists($field, (array)$this->links) && isset($header_links[$field]))
 				{
-					$_links = $this->links;
 					$link_url = $this->link_url($field);
-					$_links[$field] = $this->client()->get($link_url);
-					$this->links = $_links;
+					$this->links[$field] = $this->client()->get($link_url);
 				}
 				if (array_key_exists($field, (array)$this->links))
 				{
@@ -65,14 +71,25 @@ namespace Forward
 		 * Build relative url for a link field
 		 *
 		 * @param  string $field
+		 * @param  string $id
 		 */
-		function link_url($field)
+		function link_url($field, $id = null)
 		{
-			$url = ($qpos = strpos($this->url, '?'))
-				? substr($this->url, 0, $qpos)
-				: $this->url;
+			if ($qpos = strpos($this->url, '?'))
+			{
+				$url = substr($this->url, 0, $qpos);
+			}
+			else
+			{
+				$url = $this->url;
+			}
 
-			return rtrim($url, "/")."/".$field;
+			if ($id)
+			{
+				$url = preg_replace('/[^\/]+$/', $id, rtrim($url, "/"));
+			}
+
+			return $url."/".$field;
 		}
 		
 		/**
@@ -106,8 +123,11 @@ namespace Forward
 						$dump[$key] = $related;
 					}
 				}
+
+				$links[$key] = $link['url'];
 			}
-			if ($links = $this->links())
+
+			if ($links)
 			{
 				$dump['$links'] = $links;
 			}
