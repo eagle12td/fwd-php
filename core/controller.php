@@ -90,17 +90,18 @@ class Controller
 		}
 
 		$instance = new $class($params);
-		$method = $controller['method'] ?: $instance->default;
+		$default_method = $controller['method'] ?: $instance->default;
+		$method = $default_method ?: 'session';
 
-		if (!is_null($method))
+		if (is_null($method))
+		{
+			return;
+		}
+		
+		if (method_exists($instance, $method))
 		{
 			if (!array_key_exists($method, (array)self::$results))
 			{
-				if (!method_exists($instance, $method))
-				{
-					throw new \Exception("Controller method '".$method."()' not defined in ".$controller['class']);
-				}
-
 				foreach ((array)$params as $var => $value)
 				{
 					$vars[$var] = $value;
@@ -121,6 +122,13 @@ class Controller
 			else
 			{
 				self::$results[$method];
+			}
+		}
+		else
+		{
+			if ($default_method)
+			{
+				throw new \Exception("Controller method '".$method."()' not defined in ".$controller['class']);
 			}
 		}
 
