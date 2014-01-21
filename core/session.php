@@ -12,81 +12,53 @@ namespace Forward;
 class Session extends Util\ArrayInterface
 {
 	/**
+	 * Session data
+	 * @var array
+	 */
+	private static $data = array();
+
+	/**
 	 * Singleton constructor
 	 *
 	 * @return Session
 	 */
-	public function __construct ()
+	public function __construct()
 	{
-		// Build singleton instance, enable sessions by HTTP request only
-		if ($_SERVER['HTTP_HOST'])
-		{
-			// Start session
-			if (session_id() == '')
-			{
-				session_start();
-			}
+		self::start();
 
-			// Construct ArrayInterface with session
-			parent::__construct($_SESSION);
-		}
+		parent::__construct(&$_SESSION);
 	}
 
 	/**
-	 * Set session values to instance object
-	 */
-	public function __set ($name, $value)
-	{
-		$_SESSION[$name] = $value;
-	}
-
-	/**
-	 * Get session values from instance object
-	 *
-	 * @param  string $name
-	 * @return mixed
-	 */
-	public function & __get ($name)
-	{
-		$result =& $_SESSION[$name];
-		return $result;
-	}
-	public function offsetGet ($name)
-	{
-		$result =& $_SESSION[$name];
-		return $result;
-	}
-
-	/**
-	 * Get the value of a session parameter
+	 * Get the value of a session parameter using path notation
 	 *
 	 * @param  string $path
 	 * @return mixed
 	 */
-	public static function get ($path, $default = null)
+	public static function get($path, $default = null)
 	{
 		return self::resolve($path) ?: $default;
 	}
 
 	/**
-	 * Set the value of a session parameter
+	 * Set the value of a session parameter using path notation
 	 *
 	 * @param  string $param
 	 * @return mixed
 	 */
-	public static function set ($path, $value)
+	public static function set($path, $value)
 	{
-		$session_value = self::resolve($path);
+		$session_value =& self::resolve($path);
 		$session_value = $value;
 	}
 
 	/**
-	 * Resolve dot-notation query to config param
+	 * Resolve path/dot-notation to a session parameter
 	 *
 	 * @param  string $path
 	 * @return mixed
 	 */
-	public static function & resolve ($path)
+	public static function & resolve($path)
 	{
 		if (empty($path))
 		{
@@ -95,6 +67,7 @@ class Session extends Util\ArrayInterface
 
 		$current =& $_SESSION;
 		$p = strtok($path, '.');
+
 		while ($p !== false)
 		{
 			if (!isset($current[$p]))
@@ -106,5 +79,55 @@ class Session extends Util\ArrayInterface
 		}
 
 		return $current;
+	}
+
+	/**
+	 * Start the session for once for this execution
+	 * @return void
+	 */
+	public static function start()
+	{
+		if (!$_SERVER['HTTP_HOST'] || session_id() != '')
+		{
+			return;
+		}
+		session_set_save_handler(
+			function(){return true;},
+			function(){return true;},
+			'\\Forward\\Session::read',
+			'\\Forward\\Session::write',
+			function(){return true;},
+			function(){return true;}
+		);
+		session_start();
+	}
+
+	/**
+	 * Session save handler: read
+	 */
+	public static function read($session_id)
+	{
+		if (self::$data = Request::client('get', '/session'))
+		{
+			foreach ((array)self::$data as $key => $val)
+			{
+				$_SESSION[$key] = $val;
+			}
+		}
+		return true;
+	}
+
+	/**
+	 * Session save handler: write
+	 */
+	public static function write($session_id, $data)
+	{
+		$is_changed = json_encode($_SESSION) != json_encode(self::$data);
+
+		if ($is_changed)
+		{
+			Request::client('put', '/session', $_SESSION);
+		}
+		return true;
 	}
 }

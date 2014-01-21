@@ -358,10 +358,10 @@ class Request
 	 * @param  array $data
 	 * @return mixed
 	 */
-	public static function client($method, $url, $data)
+	public static function client($method, $url, $data = null)
 	{
 		try {
-			return self::client_adapter()->request($method, $url, $data);
+			return self::client_adapter()->{$method}($url, $data);
 		}
 		catch (ServerException $e)
 		{
@@ -515,7 +515,7 @@ class Request
 		}
 		if (!empty($messages))
 		{
-			self::session()->__persisted_messages = $messages;
+			$_SESSION['__persisted_messages'] = $messages;
 		}
 	}
 
@@ -526,14 +526,14 @@ class Request
 	 */
 	public static function restore()
 	{
-		if (self::session()->__persisted_messages)
+		if ($_SESSION['__persisted_messages'])
 		{
-			foreach ((array)self::session()->__persisted_messages as $severity => $message)
+			foreach ((array)$_SESSION['__persisted_messages'] as $severity => $message)
 			{
 				self::message($severity, $message);
 			}
 
-			self::session()->__persisted_messages = null;
+			$_SESSION['__persisted_messages'] = null;
 		}
 	}
 }

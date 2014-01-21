@@ -14,24 +14,24 @@ namespace Forward\Util;
  */
 class ArrayInterface extends \ArrayIterator
 {
-	public function & __get ($key)
+	public function & __get($key)
 	{
 		$result =& $this[$key];
 		return $result;
 	}
 
-	public function __set ($key, $val)
+	public function __set($key, $val)
 	{
 		return parent::offsetSet($key, $val);
 	}
 
-	public function offsetSet ($key, $val)
+	public function offsetSet($key, $val)
 	{
 		parent::offsetSet($key, $val);
 		$this->$key = $val;
 	}
 
-	public function dump ($return = false)
+	public function dump($return = false)
 	{
 		return print_r($this->getArrayCopy(), $return);
 	}
@@ -43,7 +43,7 @@ class ArrayInterface extends \ArrayIterator
  * @param  string $class_name
  * @return void
  */
-function autoload ($class_name)
+function autoload($class_name)
 {
 	$class_name = ltrim($class_name, '\\');
 	$class_path = "";
@@ -76,7 +76,7 @@ function autoload ($class_name)
  * @param  Exception $exception
  * @return void
  */
-function error_handler ($code, $message, $file = "", $line = 0, $globals = null, $trace = null, $exception = false)
+function error_handler($code, $message, $file = "", $line = 0, $globals = null, $trace = null, $exception = false)
 {
 	// Hide errors if PHP is not set to report them
 	if (!$exception)
@@ -219,7 +219,7 @@ function dump ()
  * @param  int|string @date
  * @return string
  */
-function merge ($set1, $set2)
+function merge($set1, $set2)
 {
 	// TODO: make this work on any number of sets (func_get_args())
 	$merged = $set1;
@@ -249,7 +249,7 @@ function merge ($set1, $set2)
  * @param  mixed $val_b
  * @return bool
  */
-function in ($val_a, $val_b = null)
+function in($val_a, $val_b = null)
 {
 	if (is_scalar($val_a))
 	{
@@ -284,7 +284,7 @@ function in ($val_a, $val_b = null)
  * @param  string $string
  * @return string
  */
-function hyphenate ($string)
+function hyphenate($string)
 {
 	$string = trim($string);
 	$string = preg_replace('/[^a-zA-Z0-9\-\_\s]/', '', $string);
@@ -301,7 +301,7 @@ function hyphenate ($string)
  * @param  string $string
  * @return string
  */
-function underscore ($string)
+function underscore($string)
 {
 	$string = trim($string);
 	$string = preg_replace('/[^a-zA-Z0-9\-\_\s]/', '', $string);
@@ -318,7 +318,7 @@ function underscore ($string)
  * @param  string $string
  * @return string
  */
-function camelize ($string)
+function camelize($string)
 {
 	$string = preg_replace('/[-_]/', ' ', $string);
 	$string = strtolower($string);
@@ -350,8 +350,7 @@ function pluralize($string, $if_many = null)
 
 	if (isset($if_many) && $if_many == 1)
 	{
-		// Note: this used to call singularize...
-		$string = $string;
+		$string = singularize($string);
 	}
 	else
 	{
