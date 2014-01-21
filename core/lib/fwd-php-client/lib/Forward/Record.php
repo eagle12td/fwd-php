@@ -11,60 +11,125 @@ namespace Forward
 		/**
 		 * Record constructor
 		 *
-		 * @param  string $url
 		 * @param  array $result
 		 * @param  Forward\Client $client
 		 */
-		function __construct($url, $result, $client = null)
+		function __construct($result, $client = null)
 		{
-			parent::__construct($url, $result, $client);
-
-			if (is_array($result['$expand']))
-			{
-				foreach($result['$expand'] as $field)
-				{
-					$this->links[$field] = $result['$data'][$field];
-				}
-			}
+			parent::__construct($result, $client);
 		}
 		
 		/**
-		 * Get field value
+		 * Get record field value
 		 *
 		 * @param  string $field
 		 * @return mixed
 		 */
 		function offsetGet($field)
 		{
+			if (is_null($field))
+			{
+				return;
+			}
+
+			if ($result = $this->offset_get_link($field))
+			{
+				return $result;
+			}
+			
+			return $this->offset_get_result($field);
+		}
+
+		/**
+		 * Get record field value as a link result
+		 *
+		 * @param  string $field
+		 * @return Resource
+		 **/
+		function offset_get_link($field)
+		{
 			if ($header_links = $this->links())
 			{
 				if ($field === '$links')
 				{
 					$links = array();
-					foreach ($header_links as $key => $link)
+					foreach ($header_links['*'] ?: $header_links as $key => $link)
 					{
-						$links[$key] = $this->link_url($key);
+						if ($link['url'])
+						{
+							$links[$key] = $this->link_url($key);
+						}
 					}
 					return $links;
 				}
-				if (!array_key_exists($field, (array)$this->links) && isset($header_links[$field]))
+				if (isset($header_links[$field]['url']))
 				{
-					$link_url = $this->link_url($field);
-					$this->links[$field] = $this->client()->get($link_url);
-				}
-				if (array_key_exists($field, (array)$this->links))
-				{
-					return $this->links[$field];
+					if (!array_key_exists($field, (array)$this->links))
+					{
+						$data = $this->data();
+						if (array_key_exists($field, (array)$data))
+						{
+							$this->links[$field] = Resource::instance(array(
+								'$url' => $this->link_url($field),
+								'$data' => $data[$field],
+								'$links' => $header_links[$field]['links']
+							));
+						}
+						else
+						{
+							$link_url = $this->link_url($field);
+							$this->links[$field] = $this->client()->get($link_url);
+						}
+					}
+					if (array_key_exists($field, (array)$this->links))
+					{
+						return $this->links[$field];
+					}
 				}
 			}
 
+			return null;
+		}
+
+		/**
+		 * Get record field value as a record result
+		 *
+		 * @param  string $field
+		 * @return mixed
+		 **/
+		function offset_get_result($field)
+		{
 			$data = $this->data();
-			if (isset($data[$field]))
+			$header_links = $this->links();
+
+			$data_links = $header_links['*'] ?: $header_links[$field]['links'];
+
+			if (is_array($data[$field]) || (!$data[$field] && $data_links))
+			{
+				$data_record = new Record(array(
+					'$url' => $this->link_url($field),
+					'$data' => $data[$field],
+					'$links' => $data_links
+				));
+				$this->offsetSet($field, $data_record);
+				return $data_record;
+			}
+			else
 			{
 				return $data[$field];
 			}
 
 			return null;
+		}
+
+		/**
+		 * Get the current element while iterating over array fields
+		 *
+		 * @return mixed
+		 */
+		function current()
+		{
+			return $this->offset_get_result($this->key());
 		}
 
 		/**
@@ -101,8 +166,9 @@ namespace Forward
 		function dump($return = false, $print = true, $depth = 1)
 		{
 			$dump = $this->data();
-			
-			foreach ($this->links() as $key => $link)
+			$links = $this->links();
+
+			foreach ($links as $key => $link)
 			{
 				if ($depth < 1)
 				{
@@ -123,13 +189,11 @@ namespace Forward
 						$dump[$key] = $related;
 					}
 				}
-
-				$links[$key] = $link['url'];
 			}
 
 			if ($links)
 			{
-				$dump['$links'] = $links;
+				$dump['$links'] = $this->dump_links($links);
 			}
 
 			return $print ? print_r($dump, $return) : $dump;

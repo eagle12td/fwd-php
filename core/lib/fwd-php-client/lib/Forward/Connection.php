@@ -85,7 +85,7 @@ namespace Forward
 		private function remote_request($stream, $method, $args)
 		{
 			$callbacks = new \stdclass();
-    		$callbacks->{++$this->callback_number} = array(count($args));
+			$callbacks->{++$this->callback_number} = array(count($args));
 
 			// Write request
 			$request = array(strtolower($method), $args, $callbacks);
@@ -132,7 +132,7 @@ namespace Forward
 		public function close()
 		{
 			fclose($this->stream);
-	    	$this->stream = null;
+			$this->stream = null;
 		}
 	}
 }

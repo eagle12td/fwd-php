@@ -29,20 +29,24 @@ namespace Forward
 		/**
 		 * Resource constructor
 		 *
-		 * @param  string $url
 		 * @param  mixed $result
 		 * @param  Forward\Client $client
 		 */
-		function __construct($url, $result, $client = null)
+		function __construct($result, $client = null)
 		{
-			$this->url = $url;
-			
-			if ($result['$links'])
+			if ($result['$url'])
 			{
-				self::$links[$url] = $result['$links'];
-			}
+				$this->url = $result['$url'];
 
-			self::$client = $client;
+				if ($result['$links'])
+				{
+					self::$links[$this->url] = $result['$links'];
+				}
+			}
+			if ($client)
+			{
+				self::$client = $client;
+			}
 
 			if (is_array($result['$data']))
 			{
@@ -56,16 +60,17 @@ namespace Forward
 		 *
 		 * @return Forward\Resource
 		 */
-		public static function instance($url, $result, $client = null)
+		public static function instance($result, $client = null)
 		{
-			if (is_array($result['$data'])
-				&& isset($result['$data']['count'])
-				&& isset($result['$data']['results']))
+			if ($result['$collection']
+			|| (is_array($result['$data'])
+			 	&& isset($result['$data']['count'])
+			 	&& isset($result['$data']['results'])))
 			{
-					return new Collection($url, $result, $client);
+				return new Collection($result, $client);
 			}
 			
-			return new Record($url, $result, $client);
+			return new Record($result, $client);
 		}
 		
 		/**
@@ -76,18 +81,6 @@ namespace Forward
 		function __toString()
 		{
 			return (string)$this->url;
-		}
-		
-		/**
-		 * Set value of a key
-		 *
-		 * @param  string $key
-		 * @param  mixed $val
-		 */
-		function offsetSet($key, $val)
-		{
-			parent::offsetSet($key, $val);
-			$this->$key = $val;
 		}
 
 		/**
@@ -101,13 +94,33 @@ namespace Forward
 		}
 
 		/**
-		 * Get raw resource data
+		 * Get resource data
 		 *
+		 * @param  bool $raw
 		 * @return mixed
 		 */
-		function data()
+		function data($raw = false)
 		{
-			return $this->getArrayCopy();
+			$data = $this->getArrayCopy();
+
+			if ($raw)
+			{
+				foreach ($data as $key => $val)
+				{
+					if ($val instanceof Resource)
+					{
+						$data[$key] = $val->data($raw);
+					}
+				}
+				foreach ((array)$this->links as $key => $val)
+				{
+					if ($val instanceof Resource)
+					{
+						$data[$key] = $val->data($raw);
+					}
+				}
+			}
+			return $data;
 		}
 
 		/**
@@ -138,6 +151,37 @@ namespace Forward
 		function dump($return = false)
 		{
 			return print_r($this->getArrayCopy(), $return);
+		}
+
+		/**
+		 * Dump resource links
+		 *
+		 * @param  array $links
+		 */
+		function dump_links($links = null)
+		{
+			if (is_null($links))
+			{
+				$links = $this->links();
+			}
+			$dump = array();
+			foreach ((array)$links as $key => $link)
+			{
+				if ($link['url'])
+				{
+					$dump[$key] = $link['url'];
+				}
+				if ($key === '*')
+				{
+					$dump = array_merge($dump, $this->dump_links($link));
+				}
+				else if ($link['links'])
+				{
+					$dump[$key] = $this->dump_links($link['links']);
+				}
+			}
+
+			return $dump;
 		}
 	}
 }

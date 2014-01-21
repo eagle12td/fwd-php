@@ -112,7 +112,6 @@ namespace Forward
 		public function request($method, $url, $data = null)
 		{
 			$url = (string)$url;
-
 			$result = $this->server->remote($method, array($url, $data));
 
 			if ($result['$auth'])
@@ -136,12 +135,16 @@ namespace Forward
 		{
 			if ($result['$data'] && is_array($result['$data']))
 			{
-				// TODO: use a header to determine url of a new record
-				if ($method == 'post')
+				if (!$result['$url'])
 				{
-					$url = rtrim($url, '/').'/'.$result['$data']['id'];
+					// TODO: use a header to determine url of a new record
+					if ($method == 'post')
+					{
+						$url = rtrim($url, '/').'/'.$result['$data']['id'];
+					}
+					$result['$url'] = $url;
 				}
-				return Resource::instance($url, $result, $this);
+				return Resource::instance($result, $this);
 			}
 			else
 			{
@@ -169,8 +172,14 @@ namespace Forward
 		 * @param  mixed $data
 		 * @return mixed
 		 */
-		public function put($url, $data = null)
+		public function put($url, $data = '$undefined')
 		{
+			if ($data === '$undefined')
+			{
+				$data = ($url instanceof Resource)
+					? $url->data()
+					: null;
+			}
 			return $this->request('put', $url, $data);
 		}
 

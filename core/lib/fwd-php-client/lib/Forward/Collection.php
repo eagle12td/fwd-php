@@ -29,20 +29,19 @@ namespace Forward
 		/**
 		 * Collection constructor
 		 *
-		 * @param  string $url
 		 * @param  mixed $result
 		 * @param  Forward\Client $client
 		 */
-		function __construct($url, $result, $client = null)
+		function __construct($result, $client = null)
 		{
 			$this->count = $result['$data']['count'];
 			$this->pages = $result['$data']['pages'];
 			$this->page = $result['$data']['page'];
 			$result['$data'] = $result['$data']['results'];
 
-			$result = $this->build_records($url, $result);
+			$result = $this->build_records($result);
 
-			parent::__construct($url, $result, $client);
+			parent::__construct($result, $client);
 		}
 
 		/**
@@ -51,23 +50,26 @@ namespace Forward
 		 * @param  array $result
 		 * @return array
 		 */
-		protected function build_records($url, $result)
+		protected function build_records($result)
 		{
+			$url = $result['$url'];
 			$parent_url = $url;
 			if (false !== ($pos = strpos($url, '?')))
 			{
 				$url = substr(0, $pos);
 			}
+
 			$url = "/".trim($url, "/");
 			foreach ((array)$result['$data'] as $key => $record)
 			{
 				$record_url = $url."/".$record['id'];
 				self::$links[$record_url] = &self::$links[$parent_url];
-				$result['$data'][$key] = new Record($record_url, array(
-					'$data' => $record,
-					'$expand' => $result['$expand']
+				$result['$data'][$key] = new Record(array(
+					'$url' => $record_url,
+					'$data' => $record
 				));
 			}
+
 			return $result;
 		}
 		
@@ -154,14 +156,12 @@ namespace Forward
 								$dump['results'][$key][$field] = $link_record;
 							}
 						}
-
-						$links[$field] = $link['url'];
 					}
 				}
 			}
-			if ($dump['results'] && $links)
+			if ($dump['results'] && $links = $this->links())
 			{
-				$dump['$links'] = $links;
+				$dump['$links'] = $this->dump_links($links);
 			}
 			if ($dump['count'] > 0)
 			{
