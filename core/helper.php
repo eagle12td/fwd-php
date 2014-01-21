@@ -329,9 +329,9 @@ class Helper
 			 * 		Usage example:
 			 * 			{$result = client("get", "/products", [is_active => true])}
 			 */
-			'request' => function($method, $url, $params = null)
+			'request' => function($method, $url, $data = null)
 			{
-				return Request::client($method, $url, $params);
+				return Request::client($method, $url, $data);
 			},
 
 			/**
@@ -342,9 +342,9 @@ class Helper
 			 *			{$result = get("/products/slug", [is_active => true])}
 			 *			{$result = "/products/slug"|get:[is_active => true]}
 			 */
-			'get' => function($uri, $params = null)
+			'get' => function($url, $data = null)
 			{
-				return Request::client('get', $uri, $params);
+				return Request::client('get', $url, $data);
 			},
 
 			/**
@@ -353,14 +353,9 @@ class Helper
 			 *		Usage example:
 			 *			{put [name => "Jane Doe"] "/accounts/123"}
 			 */
-			'put' => function($uri, $params = null)
+			'put' => function($url, $data = '$undefined')
 			{
-				if (is_array($uri))
-				{
-					return array(':put' => $uri);
-				}
-
-				return Request::client('put', $uri, $params);
+				return Request::client('put', $url, $data);
 			},
 
 			/**
@@ -369,9 +364,9 @@ class Helper
 			 *		Usage example:
 			 *			{post [email => "user@example.com"] in "/accounts"}
 			 */
-			'post' => function($uri, $params = null)
+			'post' => function($url, $data = null)
 			{
-				return Request::client('post', $uri, $params);
+				return Request::client('post', $url, $data);
 			},
 
 			/**
@@ -380,9 +375,9 @@ class Helper
 			 *		Usage example:
 			 *			{delete "/accounts/123"}
 			 */
-			'delete' => function($uri, $params = null)
+			'delete' => function($url, $data = null)
 			{
-				return Request::client('delete', $uri, $params);
+				return Request::client('delete', $url, $data);
 			},
 
 			/**
@@ -647,7 +642,9 @@ class Helper
 
 				if (isset($params['if_many']))
 				{
-					$if_many = (is_array($params['if_many'])) ? count($params['if_many']) : $params['if_many'];
+					$if_many = (is_array($params['if_many']))
+						? count($params['if_many'])
+						: $params['if_many'];
 				}
 
 				return Util\pluralize($string, $if_many);
