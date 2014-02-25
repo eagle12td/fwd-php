@@ -370,6 +370,29 @@ class TemplateEngine
 	}
 
 	/**
+	 * Set the value(s) of a global template variable
+	 *
+	 * @param  string $key
+	 * @return mixed
+	 */
+	public function set_global($key, &$value = null)
+	{
+		if (is_array($key))
+		{
+			foreach ($key as $k => &$val)
+			{
+				$this->global_vars[$k] = $val;
+			}
+		}
+		else
+		{
+			$this->global_vars[$key] = $val;
+		}
+
+		$this->set($key, $value);
+	}
+
+	/**
 	 * Get the value(s) of a template variable
 	 *
 	 * @param  string $key

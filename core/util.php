@@ -528,6 +528,11 @@ function sortby($array)
 		$collection = $array;
 		$array = $collection->records();
 	}
+	elseif ($array instanceof \Forward\Record)
+	{
+		$record = $array;
+		$array = $record->data();
+	}
 	elseif (!is_array($array))
 	{
 		return false;

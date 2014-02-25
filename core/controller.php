@@ -65,7 +65,7 @@ class Controller
 			}
 		}
 
-		Template::engine()->set($vars);
+		Template::engine()->set_global($vars);
 
 		return $results;
 	}
@@ -172,34 +172,38 @@ class Controller
 
 		if (is_file($controller['path']))
 		{
-			$class_contents = file_get_contents($controller['path']);
-
-			// Auto append controller namespace
-			$class_contents = str_replace(
-				'<?php',
-				'<?php namespace '.$controller['namespace'].';',
-				$class_contents
-			);
-
-			ob_start();
-			try {
-				$result = eval('?>'.$class_contents);
-			}
-			catch (\Exception $e)
+			// Include all controllers in this path
+			foreach (glob(dirname($controller['path']).'/*Controller.php') as $controller_path)
 			{
-				$e_class = get_class($e);
-				$message = $controller['class'].': '.$e_class.' "'.$e->getMessage()
-					.'" in '.$controller['path'].' on line '.$e->getLine();
-				throw new \Exception($message, $e->getCode(), $e);
-			}
-			ob_end_clean();
+				$class_contents = file_get_contents($controller_path);
 
-			if ($result === false)
-			{
-				$error = error_get_last();
-				$message = 'Parse error: '.$error['message']
-					.' in '.$controller['path'].' on line '.$error['line'];
-				throw new \Exception($message);
+				// Auto append controller namespace
+				$class_contents = str_replace(
+					'<?php',
+					'<?php namespace '.$controller['namespace'].';',
+					$class_contents
+				);
+
+				ob_start();
+				try {
+					$result = eval('?>'.$class_contents);
+				}
+				catch (\Exception $e)
+				{
+					$e_class = get_class($e);
+					$message = $controller['class'].': '.$e_class.' "'.$e->getMessage()
+						.'" in '.$controller_path.' on line '.$e->getLine();
+					throw new \Exception($message, $e->getCode(), $e);
+				}
+				ob_end_clean();
+
+				if ($result === false)
+				{
+					$error = error_get_last();
+					$message = 'Parse error: '.$error['message']
+						.' in '.$controller_path.' on line '.$error['line'];
+					throw new \Exception($message);
+				}
 			}
 		}
 	}

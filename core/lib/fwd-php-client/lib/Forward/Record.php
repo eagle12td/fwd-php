@@ -32,12 +32,16 @@ namespace Forward
 				return;
 			}
 
-			if ($result = $this->offset_get_link($field))
+			$link_result = $this->offset_get_link($field);
+
+			if ($link_result !== null)
 			{
-				return $result;
+				return $link_result;
 			}
-			
-			return $this->offset_get_result($field);
+			else
+			{
+				return $this->offset_get_result($field);
+			}
 		}
 
 		/**
@@ -62,6 +66,7 @@ namespace Forward
 					}
 					return $links;
 				}
+
 				if (isset($header_links[$field]['url']))
 				{
 					if (!array_key_exists($field, (array)$this->links))
@@ -69,11 +74,18 @@ namespace Forward
 						$data = $this->data();
 						if (array_key_exists($field, (array)$data))
 						{
-							$this->links[$field] = Resource::instance(array(
-								'$url' => $this->link_url($field),
-								'$data' => $data[$field],
-								'$links' => $header_links[$field]['links']
-							));
+							if (is_array($data[$field]))
+							{
+								$this->links[$field] = Resource::instance(array(
+									'$url' => $this->link_url($field),
+									'$data' => $data[$field],
+									'$links' => $header_links[$field]['links']
+								));
+							}
+							else
+							{
+								$this->links[$field] = $data[$field];
+							}
 						}
 						else
 						{
@@ -81,6 +93,7 @@ namespace Forward
 							$this->links[$field] = $this->client()->get($link_url);
 						}
 					}
+
 					if (array_key_exists($field, (array)$this->links))
 					{
 						return $this->links[$field];

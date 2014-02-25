@@ -464,7 +464,7 @@ class Helper
 			 */
 			'sortby' => function($array)
 			{
-				return Util\sortby($array);
+				return call_user_func_array("\Forward\Util\sortby", func_get_args());
 			},
 
 			/**
