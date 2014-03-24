@@ -51,6 +51,7 @@ class Request
 
 		// Route the template
 		$request = Template::route($request);
+
 		if (!is_dir($request['template_path']))
 		{
 			throw new \Exception("Template not found at {$request['template_path']}", 404);
@@ -62,11 +63,12 @@ class Request
 			self::redirect($request['redirect']);
 		}
 
-		// Load template plugins
-		Template::plugin($request);
+		// Load the template
+		Template::load($request);
 
 		// Route the view
 		$request = View::route($request);
+
 		if (!is_file($request['view_path']))
 		{
 			throw new \Exception("View not found at {$request['view_path']}", 404);
@@ -388,6 +390,7 @@ class Request
 				'client_key',
 				'client_version',
 				'client_api',
+				'client_help',
 				'clients'
 			));
 			if (self::$vars['client'])
@@ -402,7 +405,8 @@ class Request
 				'host' => $config['client_host'],
 				'port' => $config['client_port'],
 				'version' => $config['client_version'],
-				'api' => $config['client_api']
+				'api' => $config['client_api'],
+				'help' => $config['client_help']
 			));
 		}
 

@@ -103,6 +103,21 @@ class Helper
 	}
 
 	/**
+	 *	Load helpers
+	 *
+	 */
+	public static function load($helper_file)
+	{
+		$helpers = require($helper_file);
+		foreach ($helpers as $name => $function)
+		{
+			self::register($name, $function);
+		}
+		
+		return $helpers;
+	}
+
+	/**
 	 * Return array of core helpers
 	 *
 	 * @return array
@@ -560,29 +575,50 @@ class Helper
 				if (is_file($view_path))
 				{
 					$result .= Template::engine()->render($view_path, $vars, $return_vars);
-					$view_found = true;
 				}
-				else if (Template::engine()->depth() > 0)
+				else
 				{
-					// Try hidden pathing
-					$hidden_view = preg_replace('/([^\/]+)$/', '/_$1', $view['view']);
-					$hidden_view_path = $view_request['template_path'].'/views'.$hidden_view.'.'.$view['output'];
-
-					if (is_file($hidden_view_path))
+					$extend_view_path = str_replace($view_request['template_path'], $view_request['extend_template_path'], $view_path);
+					if (is_file($extend_view_path))
 					{
-						$result .= Template::engine()->render($hidden_view_path, $vars, $return_vars);
-						$view_found = true;
+						$result .= Template::engine()->render($extend_view_path, $vars, $return_vars);
 					}
-				}
+					else
+					{
+						if (Template::engine()->depth() > 0)
+						{
+							// Try hidden pathing
+							$hidden_view = preg_replace('/([^\/]+)$/', '/_$1', $view['view']);
+							$hidden_view_path = $view_request['template_path'].'/views'.$hidden_view.'.'.$view['output'];
 
-				if (!$view_found && (!isset($params['required']) || $params['required']))
-				{
-					$tpl_path = Config::path('templates');
-					$parent_path = Template::engine()->templates(0)->template_resource;
-					$view_path = str_replace($tpl_path, '', $view_path);
-					$parent_path = str_replace($tpl_path, '', $parent_path);
+							if (is_file($hidden_view_path))
+							{
+									dump(13);exit;
+								$result .= Template::engine()->render($hidden_view_path, $vars, $return_vars);
+							}
+							else
+							{
+								$extend_hidden_view_path = str_replace($view_request['template_path'], $view_request['extend_template_path'], $hidden_view_path);
+								if (is_file($extend_hidden_view_path))
+								{
+									dump(1);exit;
+									$result .= Template::engine()->render($extend_hidden_view_path, $vars, $return_vars);
+								}
+								else
+								{
+									if ((!isset($params['required']) || $params['required']))
+									{
+										$tpl_path = Config::path('templates');
+										$parent_path = Template::engine()->templates(0)->template_resource;
+										$view_path = str_replace($tpl_path, '', $view_path);
+										$parent_path = str_replace($tpl_path, '', $parent_path);
 
-					throw new \Exception("View not found at {$view_path} (in {$parent_path})");
+										throw new \Exception("View not found at {$view_path} (in {$parent_path})");
+									}
+								}
+							}
+						}
+					}
 				}
 
 				// Merge with original request paths
@@ -732,9 +768,19 @@ class Helper
 
 				$request = Template::route($request);
 
-				$asset_path = $request['template'].'/assets/'.ltrim($asset_url, '/');
-				$asset_url = Config::path('templates', $asset_path);
-				$asset_url = str_replace(Config::path('root'), '', $asset_url);
+				$asset = '/assets/'.ltrim($asset_url, '/');
+				$asset_path = $request['template_path'].$asset;
+
+				if (!is_file($asset_path))
+				{
+					$extend_asset_path = $request['extend_template_path'].$asset;
+					if (is_file($extend_asset_path))
+					{
+						$asset_path = $extend_asset_path;
+					}
+				}
+
+				$asset_url = str_replace(Config::path('root'), '', $asset_path);
 
 				return $asset_url;
 			},

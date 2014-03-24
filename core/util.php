@@ -606,43 +606,42 @@ function sortby($array)
  */
 function age($date)
 {
-	// Make sure we have a timestamp.
 	$time = is_numeric($date) ? (int)$date : strtotime($date);
+	$seconds_elapsed = (time() - $time);
 
-	// Seconds.
 	if ($seconds_elapsed < 60)
 	{
 		return 'just now';
 	}
-	// Minutes.
 	else if ($seconds_elapsed >= 60 && $seconds_elapsed < 3600)
 	{
-		$age = floor($seconds_elapsed / 60).' '.pluralize(array('word' => 'minute', 'if_many' => floor($seconds_elapsed / 60)));
+		$num = floor($seconds_elapsed / 60);
+		$age = pluralize("{$num} minute");
 	}
-	// Hours.
 	else if ($seconds_elapsed >= 3600 && $seconds_elapsed < 86400)
 	{
-		$age = floor($seconds_elapsed / 3600).' '.pluralize(array('word' => 'hour', 'if_many' => floor($seconds_elapsed / 3600)));
+		$num = floor($seconds_elapsed / 3600);
+		$age = pluralize("{$num} hour");
 	}
-	// Days.
 	else if ($seconds_elapsed >= 86400 && $seconds_elapsed < 604800)
 	{
-		$age = floor($seconds_elapsed / 86400).' '.pluralize(array('word' => 'day', 'if_many' => floor($seconds_elapsed / 86400)));
+		$num = floor($seconds_elapsed / 86400);
+		$age = pluralize("{$num} day");
 	}
-	// Weeks.
 	else if ($seconds_elapsed >= 604800 && $seconds_elapsed < 2626560)
 	{
-		$age = floor($seconds_elapsed / 604800).' '.pluralize(array('word' => 'week', 'if_many' => floor($seconds_elapsed / 604800)));
+		$num = floor($seconds_elapsed / 604800);
+		$age = pluralize("{$num} week");
 	}
-	// Months.
 	else if ($seconds_elapsed >= 2626560 && $seconds_elapsed < 31536000)
 	{
-		$age = floor($seconds_elapsed / 2626560).' '.pluralize(array('word' => 'month', 'if_many' => floor($seconds_elapsed / 2626560)));
+		$num = floor($seconds_elapsed / 2626560);
+		$age = pluralize("{$num} month");
 	}
-	// Years.
 	else if ($seconds_elapsed >= 31536000)
 	{
-		$age = floor($seconds_elapsed / 31536000).' '.pluralize(array('word' => 'year', 'if_many' => floor($seconds_elapsed / 31536000)));
+		$num = floor($seconds_elapsed / 31536000);
+		$age = pluralize("{$num} year");
 	}
 
 	return "{$age} ago";

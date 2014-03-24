@@ -28,6 +28,11 @@ class Template
 		$request['template'] = $request['template'] ?: Config::get('defaults.template', 'default');
 		$config = self::config($request['template']);
 
+		if ($config['extends'])
+		{
+			$request = self::route_extended($request, $config['extends']);
+		}
+
 		$request = Request::route($request, $config['routes']);
 		$request['template_path'] = Config::path('templates', $request['template']);
 
@@ -45,7 +50,7 @@ class Template
 	{
 		$template = $request['template'];
 
-		static $extended;
+		/*static $extended;
 		if (!isset($extended[$template]))
 		{
 			$extended[$template] = true;
@@ -53,12 +58,13 @@ class Template
 		else
 		{
 			throw new \Exception("Recursive template extension ({$template} >> {$extends})");
-		}
+		}*/
 
 		$extend_request = $request;
 		$extend_request['template'] = $extends;
 		$extend_request = self::route($extend_request);
 
+		$request['extend_template'] = $extends;
 		$request['extend_template_path'] = $extend_request['template_path'];
 
 		if ($request['config']['routes'])
@@ -94,35 +100,52 @@ class Template
 	}
 
 	/**
-	 * Load templates plugins by request
+	 * Load template dependencies by request
 	 *
 	 * @param  array $request
 	 * @return array
 	 */
-	public static function plugin($request)
+	public static function load($request)
 	{
-		if ($request['template_path'])
+		if (!$request['template_path'])
 		{
-			$plugins = array();
-			$plugin_path = $request['template_path'].'/plugins/';
+			return;
+		}
 
-			if (!is_dir($plugin_path))
+		foreach (array($request['template_path'], $request['extend_template_path']) as $template_path)
+		{
+			$helpers = array();
+			$helper_path = $template_path.'/helpers/';
+			if (is_dir($helper_path))
 			{
-				return;
-			}
-			foreach (scandir($plugin_path) as $plugin)
-			{
-				if ($plugin[0] != "." && is_dir($plugin_path.$plugin))
+				foreach (scandir($helper_path) as $file)
 				{
-					$plugins[$plugin] = array(
-						'enabled' => true
-					);
+					if ($file[0] == '.')
+					{
+						continue;
+					}
+
+					$group = str_replace(EXT, '', $file);
+					$helpers[$group] = Helper::load($helper_path.$file);
 				}
 			}
 
-			Plugin::load($plugin_path, $plugins);
+			$plugins = array();
+			$plugin_path = $template_path.'/plugins/';
+			if (is_dir($plugin_path))
+			{
+				foreach (scandir($plugin_path) as $plugin)
+				{
+					if ($plugin[0] != "." && is_dir($plugin_path.$plugin))
+					{
+						$plugins[$plugin] = array(
+							'enabled' => true
+						);
+					}
+				}
 
-			return $plugins;
+				Plugin::load($plugin_path, $plugins);
+			}
 		}
 	}
 
@@ -464,10 +487,11 @@ class TemplateEngine
 				'handler' => function ($args, $smarty)
 				{
 					$params = parse_smarty_compile_args($args, array(
-						'tags' => array('view')
+						'tags' => array('__view__')
 					));
+					$view = $params['__view__'];
 
-					return '<?php echo render('.serialize_to_php($params).') ?>'
+					return '<?php echo render('.$view.', '.serialize_to_php($params).') ?>'
 						.'<?php if (isset($GLOBALS[\'fwd_template_result\'])) { return; } ?>';
 				}
 			),

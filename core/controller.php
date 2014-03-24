@@ -52,7 +52,12 @@ class Controller
 
 			if (!is_file($controller['path']))
 			{
-				throw new \Exception('Controller not found at '.$controller['path']);
+				$controller['path'] = $controller['extend_path'];
+
+				if (!is_file($controller['path']))
+				{
+					throw new \Exception('Controller not found at '.$controller['path']);
+				}
 			}
 
 			if ($was_array)
@@ -150,6 +155,7 @@ class Controller
 		$class_name = $name.'Controller';
 		$class_file = $class_name.'.php';
 		$class_path = $request['template_path'].'/controllers/'.$class_file;
+		$extend_class_path = $request['extend_template_path'].'/controllers/'.$class_file;
 		$class_method = $parts[1] ? Util\underscore($parts[1]) : null;
 
 		return array(
@@ -158,6 +164,7 @@ class Controller
 			'class' => $class_name,
 			'file' => $class_file,
 			'path' => $class_path,
+			'extend_path' => $extend_class_path,
 			'method' => $class_method
 		);
 	}
