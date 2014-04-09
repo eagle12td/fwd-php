@@ -149,31 +149,31 @@ namespace Forward
                 return;
             }
 
-            if (!$this->help)
+            if ($this->params['client_id'] && $this->params['client_key'])
             {
-                $this->help = new Client($this->params['client_id'], $this->params['client_key'], $this->params['help']);
-                $this->help->is_help = true;
+                if (!$this->help)
+                {
+                    $this->help = new Client($this->params['client_id'], $this->params['client_key'], $this->params['help']);
+                    $this->help->is_help = true;
+                }
+
+                $result = $this->help->post("/help.exceptions", array(
+                    'type' => end(explode('\\', get_class($e))),
+                    'message' => $e->getMessage(),
+                    'request' => array(
+                        'id' => $id,
+                        'url' => $url
+                    )
+                ));
+                if ($result)
+                {
+                    $e_message = "(Help alerted with Exception ID: {$result['id']})";
+                    $e_class = get_class($e);
+                    throw new $e_class($e->getMessage().' '.$e_message, $e->getCode(), $e);
+                }
             }
 
-            $result = $this->help->post("/help.exceptions", array(
-                'type' => end(explode('\\', get_class($e))),
-                'message' => $e->getMessage(),
-                'request' => array(
-                    'id' => $id,
-                    'url' => $url
-                )
-            ));
-
-            if ($result)
-            {
-                $e_message = "(System alerted at {$this->params['help']['host']}:{$this->params['help']['port']} on {$result['date_created']} with Exception ID: {$result['id']})";
-                $e_class = get_class($e);
-                throw new $e_class($e->getMessage().' '.$e_message, $e->getCode(), $e);
-            }
-            else
-            {
-                throw $e;
-            }
+            throw $e;
         }
 
         /**

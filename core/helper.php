@@ -805,6 +805,32 @@ class Helper
 			'not_empty' => function($value)
 			{
 				return $value || $value === "0";
+			},
+
+			/**
+			 * Evaluate conditional array agsinst value
+			 *
+			 * 		Usage example:
+			 *			{$conditions = [name => ['$ne' => null]]}
+			 *			{$value = [name => "John Smith]}
+			 *			{eval_conditions($conditions, $value)} # true
+			 */
+			'eval_conditions' => function($conditions, $value)
+			{
+				return Util\eval_conditions($conditions, $value);
+			},
+
+			/**
+			 * Evaluate formula expression with scope data
+			 *
+			 * 		Usage example:
+			 *			{$expression = 'hyphenate(name)'}
+			 *			{$scope = [name => "John Smith]}
+			 *			{eval_formula($expression, $scope)} # john-smith
+			 */
+			'eval_formula' => function($expression, $scope)
+			{
+				return Util\eval_formula($expression, $scope);
 			}
 		);
 	}

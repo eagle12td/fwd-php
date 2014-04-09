@@ -52,7 +52,7 @@ class Controller
 
 			if (!is_file($controller['path']))
 			{
-				$controller['path'] = $controller['extend_path'];
+				$controller['path'] = $controller['extend']['path'];
 
 				if (!is_file($controller['path']))
 				{
@@ -151,7 +151,8 @@ class Controller
 		$parts = explode('/', ltrim($name, '/'));
 
 		$name = Util\camelize($parts[0]);
-		$namespace = Util\camelize($request['template']);
+		$namespace = "Forward\\".Util\camelize($request['template'])."Template";
+		$extend_namespace = "Forward\\".Util\camelize($request['extend_template'])."Template";
 		$class_name = $name.'Controller';
 		$class_file = $class_name.'.php';
 		$class_path = $request['template_path'].'/controllers/'.$class_file;
@@ -164,8 +165,11 @@ class Controller
 			'class' => $class_name,
 			'file' => $class_file,
 			'path' => $class_path,
-			'extend_path' => $extend_class_path,
-			'method' => $class_method
+			'method' => $class_method,
+			'extend' => array(
+				'namespace' => $extend_namespace,
+				'path' => $extend_class_path
+			)
 		);
 	}
 
@@ -179,39 +183,59 @@ class Controller
 
 		if (is_file($controller['path']))
 		{
-			// Include all controllers in this path
-			foreach (glob(dirname($controller['path']).'/*Controller.php') as $controller_path)
+			// Include all controllers in this path, and also extend paths
+			foreach (array($controller['extend'], $controller) as $ctrl)
 			{
-				$class_contents = file_get_contents($controller_path);
-
-				// Auto append controller namespace
-				$class_contents = str_replace(
-					'<?php',
-					'<?php namespace '.$controller['namespace'].';',
-					$class_contents
-				);
-
-				ob_start();
-				try {
-					$result = eval('?>'.$class_contents);
-				}
-				catch (\Exception $e)
+				foreach (glob(dirname($ctrl['path']).'/*Controller.php') as $controller_path)
 				{
-					$e_class = get_class($e);
-					$message = $controller['class'].': '.$e_class.' "'.$e->getMessage()
-						.'" in '.$controller_path.' on line '.$e->getLine();
-					throw new \Exception($message, $e->getCode(), $e);
-				}
-				ob_end_clean();
-
-				if ($result === false)
-				{
-					$error = error_get_last();
-					$message = 'Parse error: '.$error['message']
-						.' in '.$controller_path.' on line '.$error['line'];
-					throw new \Exception($message);
+					self::load($controller_path, $ctrl);
 				}
 			}
+		}
+	}
+
+	/**
+	 * Load and evaluate a controller from a file
+	 *
+	 * @param  string $controller_path
+	 */
+	public static function load($controller_path, $controller)
+	{
+		$class_contents = file_get_contents($controller_path);
+
+		// Auto append controller namespace
+		$class_contents = str_replace(
+			'<?php',
+			'<?php namespace '.$controller['namespace'].';',
+			$class_contents
+		);
+
+		// Autoload dependency
+		/*if (preg_match('/'.$controller['class'].' extends (.+Controller)/', $class_contents, $matches))
+		{
+			self::load($matches[1]);
+		}*/
+
+		ob_start();
+		try {
+			$result = eval('?>'.$class_contents);
+		}
+		catch (\Exception $e)
+		{
+			$e_class = get_class($e);
+			$message = $controller['class'].': '.$e_class.' "'.$e->getMessage()
+				.'" in '.$controller_path.' on line '.$e->getLine();
+			throw new \Exception($message, $e->getCode(), $e);
+		}
+		ob_end_clean();
+
+		if ($result === false)
+		{
+			$error = error_get_last();
+			$message = 'Parse error: '.$error['message']
+				.' in '.$controller_path.' on line '.$error['line'];
+			$message .= "<pre>".htmlspecialchars($class_contents)."</pre>";
+			throw new \Exception($message);
 		}
 	}
 }

@@ -89,6 +89,7 @@ class Session extends Util\ArrayInterface
 	{
 		if (!$_SERVER['HTTP_HOST'] || session_id() != '')
 		{
+			$_SESSION = array();
 			return;
 		}
 		session_set_save_handler(
@@ -107,7 +108,7 @@ class Session extends Util\ArrayInterface
 	 */
 	public static function read($session_id)
 	{
-		if (self::$data = Request::client('get', '/session'))
+		if (self::$data = Request::client('get', '/:sessions/:current'))
 		{
 			foreach ((array)self::$data as $key => $val)
 			{
@@ -122,11 +123,11 @@ class Session extends Util\ArrayInterface
 	 */
 	public static function write($session_id, $data)
 	{
-		$is_changed = json_encode($_SESSION) != json_encode(self::$data);
+		$is_changed = !empty($_SESSION) && json_encode($_SESSION) != json_encode(self::$data);
 
 		if ($is_changed)
 		{
-			Request::client('put', '/session', $_SESSION);
+			Request::client('put', '/:sessions/:current', $_SESSION);
 		}
 		return true;
 	}

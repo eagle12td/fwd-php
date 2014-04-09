@@ -109,12 +109,17 @@ class Event
 			}
 		}
 
-		// Event format = [target.][pre:]event[,[pre:]event]
-		$event = strtolower($event);
-		$event = str_replace(' ', '', $event);
-		$event_parts = explode(',', $event);
+		// Event format is an Array or string of
+		// [target.][pre:]event[,[pre:]event]
+		$event_parts = is_array($event)
+			? $event
+			: explode(',', $event);
+			
 		foreach ($event_parts as $event)
 		{
+			$event = strtolower($event);
+			$event = str_replace(' ', '', $event);
+
 			// Target as part of event string?
 			if ($target === 0)
 			{

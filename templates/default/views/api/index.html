@@ -1,6 +1,4 @@
-{extend "index.php"}
-
-{$index = $request.index}
+{controller "api/index"}
 
 <form role="form" method="get" action="" class="form-inline">
 	<select name="method" class="form-control" style="width:90px">
@@ -8,10 +6,20 @@
 			<option {if $params.method == $m}selected="selected"{/if}>{$m}</option>
 		{/foreach}
 	</select>
-	<select name="base_uri" class="form-control" style="width:130px">
-		{$index.options.o = [uri => "/:options"]} 
+	<select name="url" class="form-control" style="width:130px">
+		{$index.options[':activity'] = [url => "/:activity"]}
+		{$index.options[':client'] = [url => "/:client"]}
+		{$index.options[':layouts'] = [url => "/:layouts"]}
+		{$index.options[':models'] = [url => "/:models"]}
+		{$index.options[':notes'] = [url => "/:notes"]}
+		{$index.options[':notifications'] = [url => "/:notifications"]}
+		{$index.options[':options'] = [url => "/:options"]}
+		{$index.options[':sessions'] = [url => "/:sessions"]}
+		{$index.options[':settings'] = [url => "/:settings"]}
+		{$index.options[':templates'] = [url => "/:templates"]}
+		{$index.options[':users'] = [url => "/:users"]}
 		{foreach $index.options as $model}
-			<option {if $params.base_uri == $model.uri}selected="selected"{/if} value="{$model.uri}">{$model.uri}</option>
+			<option {if $params.url == $model.url}selected="selected"{/if} value="{$model.url}">{$model.url}</option>
 		{/foreach}
 	</select>
 	<input type="text" name="rel_url" value="{$params.rel_url|escape|default:""}" placeholder="URI" id="urlinput" size="40" class="form-control" style="width:400px" />
@@ -22,7 +30,7 @@
 	<br />
 	<code>
 		<span>{$params.method|upper} {$index.url} ({$index.timing|round:3} seconds)</span>
-		<pre>{$index.result|json_print}</pre>
+		<pre>{$index.result|json_print|escape}</pre>
 	</code>
 {/if}
 
