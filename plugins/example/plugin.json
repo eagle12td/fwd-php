@@ -3,5 +3,6 @@
 	"label": "Example Plugin",
 	"description": "Just another example plugin",
 	"author": "Forward",
-	"version": "1.0.0"
+	"version": "1.0.0",
+	"enabled": false
 }

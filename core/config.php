@@ -3,7 +3,7 @@
  * Forward // PHP Template Framework
  *
  * @version  1.0.2
- * @link 	 https://getfwd.com
+ * @link     https://getfwd.com
  * @license  http://www.apache.org/licenses/LICENSE-2.0
  */
 
@@ -11,110 +11,110 @@ namespace Forward;
 
 class Config
 {
-	/**
-	 * Config parameters stored after load
-	 * @var array
-	 */
-	private static $params = array();
+    /**
+     * Config parameters stored after load
+     * @var array
+     */
+    private static $params = array();
 
-	/**
-	 * File system paths include root, core, tempates, plugins
-	 * @var array
-	 */
-	private static $paths = array();
+    /**
+     * File system paths include root, core, tempates, plugins
+     * @var array
+     */
+    private static $paths = array();
 
-	/**
-	 * Get the value of a config parameter
-	 *
-	 * @param  string $path
-	 * @return mixed
-	 */
-	public static function get($path, $default = null)
-	{
-		return self::resolve($path) ?: $default;
-	}
+    /**
+     * Get the value of a config parameter
+     *
+     * @param  string $path
+     * @return mixed
+     */
+    public static function get($path, $default = null)
+    {
+        return self::resolve($path) ?: $default;
+    }
 
-	/**
-	 * Resolve dot-notation query to config param
-	 *
-	 * @param  string $path
-	 * @return mixed
-	 */
-	public static function resolve($path)
-	{
+    /**
+     * Resolve dot-notation query to config param
+     *
+     * @param  string $path
+     * @return mixed
+     */
+    public static function resolve($path)
+    {
         if (is_array($path))
         {
-			foreach ($path as $key)
-			{
-				$result[$key] = self::resolve($key);
-			}
-			return $result;
+            foreach ($path as $key)
+            {
+                $result[$key] = self::resolve($key);
+            }
+            return $result;
         }
-		if (empty($path))
-		{
-			return null;
-		}
+        if (empty($path))
+        {
+            return null;
+        }
 
-		$current = self::$params;
-		$p = strtok($path, '.');
-		while ($p !== false)
-		{
-			if (!isset($current[$p]))
-			{
-				return null;
-			}
-			$current = $current[$p];
-			$p = strtok('.');
-		}
+        $current = self::$params;
+        $p = strtok($path, '.');
+        while ($p !== false)
+        {
+            if (!isset($current[$p]))
+            {
+                return null;
+            }
+            $current = $current[$p];
+            $p = strtok('.');
+        }
 
-		return $current;
-	}
+        return $current;
+    }
 
-	/**
-	 * Load a config value set
-	 *
-	 * @param  string $file_path
-	 * @return void
-	 */
-	public static function load($file_path = null)
-	{
-		if ($file_path)
-		{
-			self::$params = require($file_path);
-		}
-		else
-		{
-			// Set paths config from global
-			self::$paths = $GLOBALS['paths'];
+    /**
+     * Load a config value set
+     *
+     * @param  string $file_path
+     * @return void
+     */
+    public static function load($file_path = null)
+    {
+        if ($file_path)
+        {
+            self::$params = require($file_path);
+        }
+        else
+        {
+            // Set paths config from global
+            self::$paths = $GLOBALS['paths'];
 
-			// Load base config
-			self::$params = require(self::path('root', 'config'.EXT));
+            // Load base config
+            self::$params = require(self::path('root', 'config'.EXT));
 
-			// Load and merge local config if exists
-			if (is_file($local = self::path('root', 'local-config'.EXT)))
-			{
-				$local_params = require($local);
-				self::$params = Util\merge(self::$params, $local_params);
-			}
-		}
-	}
+            // Load and merge local config if exists
+            if (is_file($local = self::path('root', 'local-config'.EXT)))
+            {
+                $local_params = require($local);
+                self::$params = Util\merge(self::$params, $local_params);
+            }
+        }
+    }
 
-	/**
-	 * Basic accessor for $paths
-	 *
-	 * @param  string $name
-	 * @return string
-	 */
-	public static function path($name, $append = null)
-	{
-		if ($path = self::$paths[$name])
-		{
-			if ($append)
-			{
-				$path .= DIRECTORY_SEPARATOR.ltrim($append, DIRECTORY_SEPARATOR);
-			}
-		}
+    /**
+     * Basic accessor for $paths
+     *
+     * @param  string $name
+     * @return string
+     */
+    public static function path($name, $append = null)
+    {
+        if ($path = self::$paths[$name])
+        {
+            if ($append)
+            {
+                $path .= DIRECTORY_SEPARATOR.ltrim($append, DIRECTORY_SEPARATOR);
+            }
+        }
 
-		return $path;
-	}
+        return $path;
+    }
 }

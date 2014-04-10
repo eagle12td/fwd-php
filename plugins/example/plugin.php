@@ -1,6 +1,6 @@
 <?php
 
-Plugin::helper('example', function($params)
+Forward\Plugin::helper('example', function($params)
 {
 	// TODO: a better example
 	return "Hello World";

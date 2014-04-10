@@ -36,6 +36,16 @@ class Request
     private static $vars;
 
     /**
+     * Get curren request vars
+     *
+     * @return array
+     */
+    public static function current()
+    {
+        return self::$vars;
+    }
+
+    /**
      * Dispatch a request
      *
      * @param  mixed $url
@@ -46,10 +56,10 @@ class Request
     public static function dispatch($url = null, $routes = null, $return = false)
     {
         // Sanitize and parse request
-        $request = self::parse($url);
-        $request = Event::trigger('request', 'dispatch', $request);
+        $request = self::$vars = self::parse($url);
         $request = self::route($request, $routes ?: Config::get('routes'));
-
+        $request = Event::trigger('request', 'dispatch', $request);
+        
         // Route the template
         $request = Template::route($request);
 
@@ -75,7 +85,7 @@ class Request
             throw new \Exception("View not found at {$request['view_path']}", 404);
         }
 
-        $request = self::$vars = array_merge((array)self::$vars, $request);
+        $request = array_merge((array)self::$vars, $request);
 
         $view_result = View::render($request);
 
@@ -320,6 +330,10 @@ class Request
             {
                 $handler = $match;
                 $result = call_user_func_array($handler, func_get_args());
+                if (!is_null($result))
+                {
+                    return $result;
+                }
             }
             else if (is_array($match))
             {
@@ -329,14 +343,13 @@ class Request
                 }
 
                 // Filter binding based on conditional match
-                $request = Request::route(self::$vars, array(
+                $request = Request::route(Request::current(), array(
                     'match' => $match,
                     'request' => array('matched' => true)
                 ));
                 if ($request['matched'])
                 {
                     $result = call_user_func_array($handler, func_get_args());
-
                     if (!is_null($result))
                     {
                         return $result;
@@ -385,6 +398,15 @@ class Request
      */
     public static function client($method, $url, $data = null)
     {
+        $result = Event::trigger('request', 'remote', $method, $url, $data);
+
+        if (is_array($result))
+        {
+            $method = $result['method'] ?: $method;
+            $url = $result['url'] ?: $url;
+            $data = $result['data'] ?: $data;
+        }
+
         try {
             return self::client_adapter()->{$method}($url, $data);
         }
@@ -431,6 +453,8 @@ class Request
                 'api' => $config['client_api'],
                 'help' => $config['client_help']
             ));
+
+            self::$client = Event::trigger('request', 'client', self::$client);
         }
 
         return self::$client;

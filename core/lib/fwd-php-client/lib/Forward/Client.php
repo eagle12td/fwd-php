@@ -96,6 +96,28 @@ namespace Forward
         }
 
         /**
+         * Get or set client params
+         *
+         * @param  mixed $merge
+         * @param  array
+         */
+        public function params($merge = null)
+        {
+            if (is_array($merge))
+            {
+                $this->params = array_merge($this->params, $merge);
+            }
+            else if (is_string($key = $merge))
+            {
+                return $this->params[$key];
+            }
+            else
+            {
+                return $this->params;
+            }
+        }
+
+        /**
          * Request helper
          *
          * @param  string $method
@@ -318,6 +340,10 @@ namespace Forward
             if ($this->params['session'])
             {
                 $creds['$session'] = $this->params['session'];
+            }
+            if ($this->params['route'])
+            {
+                $creds['$route'] = $this->params['route'];
             }
             if ($address = $_SERVER['REMOTE_ADDR'] ?: $_SERVER['REMOTE_ADDR'])
             {

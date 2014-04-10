@@ -114,6 +114,7 @@ class Template
 
 		foreach (array($request['template_path'], $request['extend_template_path']) as $template_path)
 		{
+			/* TODO: remove this as it is no longer supported
 			$helpers = array();
 			$helper_path = $template_path.'/helpers/';
 			if (is_dir($helper_path))
@@ -128,23 +129,12 @@ class Template
 					$group = str_replace(EXT, '', $file);
 					$helpers[$group] = Helper::load($helper_path.$file);
 				}
-			}
+			}*/
 
-			$plugins = array();
 			$plugin_path = $template_path.'/plugins/';
 			if (is_dir($plugin_path))
 			{
-				foreach (scandir($plugin_path) as $plugin)
-				{
-					if ($plugin[0] != "." && is_dir($plugin_path.$plugin))
-					{
-						$plugins[$plugin] = array(
-							'enabled' => true
-						);
-					}
-				}
-
-				Plugin::load($plugin_path, $plugins);
+				Plugin::load($plugin_path);
 			}
 		}
 	}
