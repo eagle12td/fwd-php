@@ -62,10 +62,9 @@ namespace Forward
          */
         public static function instance($result, $client = null)
         {
-            if ($result['$collection']
-            || (is_array($result['$data'])
+            if (is_array($result['$data'])
                 && isset($result['$data']['count'])
-                && isset($result['$data']['results'])))
+                && isset($result['$data']['results']))
             {
                 return new Collection($result, $client);
             }

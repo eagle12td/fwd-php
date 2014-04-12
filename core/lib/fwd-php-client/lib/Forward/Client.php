@@ -25,6 +25,12 @@ namespace Forward
         protected $server;
 
         /**
+         * Client cache instance
+         * @var Forward\Cache
+         */
+        protected $cache;
+
+        /**
          * Session identifier
          * @var string
          */
@@ -82,6 +88,7 @@ namespace Forward
                 'client_key' => $client_key ?: $options['client_key'],
                 'version' => $options['version'] ?: 1,
                 'session' => $options['session'] ?: session_id(),
+                'cache' => $options['cache'],
                 'help' => array(
                     'host' => $options['help']['host'] ?: self::$default_help_host,
                     'port' => $options['help']['port'] ?: self::$default_help_port
@@ -148,7 +155,7 @@ namespace Forward
                 $result = $this->auth($result['$auth']);
             }
 
-            return $this->response($method, $url, $result);
+            return $this->response($method, $url, $data, $result);
         }
 
         /**
@@ -225,29 +232,50 @@ namespace Forward
          *
          * @param  string $method
          * @param  string $url
+         * @param  mixed $data
          * @param  mixed $result
          * @return Forward\Resource
          */
-        public function response($method, $url, $result)
+        public function response($method, $url, $data, $result)
+        {
+            if ($this->cache)
+            {
+                // First clear relevant cache then put
+                $this->cache->clear($result);
+
+                if ($method === 'get')
+                {
+                    $this->cache->put($url, $data, $result);
+                }
+            }
+
+            return $this->response_data($result);
+        }
+
+        /**
+         * Instantiate resource for response data if applicable
+         *
+         * @param  array $result
+         */
+        public function response_data($result)
         {
             if ($result['$data'] && is_array($result['$data']))
             {
                 if (!$result['$url'])
                 {
                     // TODO: use a header to determine url of a new record
-                    if ($method == 'post')
+                    if ($method === 'post')
                     {
                         $url = rtrim($url, '/').'/'.$result['$data']['id'];
                     }
                     $result['$url'] = $url;
                 }
-                return Resource::instance($result, $this);
+                $r = Resource::instance($result, $this);
+                return $r;
             }
-            else
-            {
-                // TODO: use a header to branch on Resource vs value
-                return $result['$data'];
-            }
+
+            // TODO: use a header to branch on Resource vs value
+            return $result['$data'];
         }
 
         /**
@@ -259,6 +287,16 @@ namespace Forward
          */
         public function get($url, $data = null)
         {
+            if ($this->cache)
+            {
+                $result = $this->cache->get($url, $data);
+
+                if (array_key_exists('$data', $result))
+                {
+                    return $this->response_data($result);
+                }
+            }
+
             return $this->request('get', $url, $data);
         }
 
@@ -348,6 +386,15 @@ namespace Forward
             if ($address = $_SERVER['REMOTE_ADDR'] ?: $_SERVER['REMOTE_ADDR'])
             {
                 $creds['$ip'] = $address;
+            }
+            if ($this->params['cache'])
+            {
+                if (!$this->cache)
+                {
+                    $client_id = $creds['$route']['client'] ?: $client_id;
+                    $this->cache = new \Forward\Cache($client_id, $this->params['cache']);
+                }
+                $creds['$cached'] = $this->cache->get_versions();
             }
             
             return $this->server->request('auth', array($creds));

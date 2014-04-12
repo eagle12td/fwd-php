@@ -436,6 +436,7 @@ class Request
                 'client_version',
                 'client_api',
                 'client_help',
+                'client_cache',
                 'clients'
             ));
             if (self::$vars['client'])
@@ -451,7 +452,8 @@ class Request
                 'port' => $config['client_port'],
                 'version' => $config['client_version'],
                 'api' => $config['client_api'],
-                'help' => $config['client_help']
+                'help' => $config['client_help'],
+                'cache' => $config['client_cache'] ?: Config::path('core', '/cache')
             ));
 
             self::$client = Event::trigger('request', 'client', self::$client);
