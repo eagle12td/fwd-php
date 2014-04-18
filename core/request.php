@@ -82,12 +82,16 @@ class Request
 
         if (!is_file($request['view_path']))
         {
+            $request = Event::trigger('request', 'notfound', $request);
             throw new \Exception("View not found at {$request['view_path']}", 404);
         }
 
         $request = array_merge((array)self::$vars, $request);
 
+        $request = Event::trigger('request', 'render', $request);
         $view_result = View::render($request);
+
+        $view_result = Event::trigger('request', 'complete', $view_result);
 
         return ($return ? $view_result : print $view_result);
     }
@@ -398,7 +402,16 @@ class Request
      */
     public static function client($method, $url, $data = null)
     {
-        $result = Event::trigger('request', 'remote', $method, $url, $data);
+        $params = array(
+            'method' => &$method,
+            'url' => &$url,
+            'data' => &$data
+        );
+        // This approach enables two different event types:
+        // 1) Request::bind('remote', array(... request filter ...), function($params){})
+        // 2) Event::bind('client.request', function($params){})
+        $params = Event::trigger('request', 'remote', $params);
+        $params = Event::trigger('client', 'request', $params);
 
         if (is_array($result))
         {
@@ -408,13 +421,17 @@ class Request
         }
 
         try {
-            return self::client_adapter()->{$method}($url, $data);
+            $response = self::client_adapter()->{$method}($url, $data);
         }
         catch (ServerException $e)
         {
             $message = $e->getMessage()." (".$method." ".$url." ".json_encode($data ?: new \stdClass).")";
             throw new ServerException($message);
         }
+
+        $response = Event::trigger('client', 'response', $response, $params);
+        
+        return $response;
     }
 
     /**
@@ -429,6 +446,7 @@ class Request
             require_once(Config::path('core', 'lib/fwd-php-client/lib/Forward.php'));
 
             $config = Config::get(array(
+                'client',
                 'client_host',
                 'client_port',
                 'client_id',
@@ -439,22 +457,39 @@ class Request
                 'client_cache',
                 'clients'
             ));
-            if (self::$vars['client'])
+
+            $client = self::$vars['client'] ?: $config['client'] ?: array();
+
+            if (is_string($client))
             {
-                $client = $config['clients'][self::$vars['client']];
-                foreach ($client as $key => $val)
+                $client_config = $config['clients'][$client];
+                $client = array();
+                foreach ($client_config as $key => $val)
                 {
-                    $config[$key] = $val;
+                    $client[$key] = $val;
                 }
             }
-            self::$client = new \Forward\Client($config['client_id'], $config['client_key'], array(
-                'host' => $config['client_host'],
-                'port' => $config['client_port'],
-                'version' => $config['client_version'],
-                'api' => $config['client_api'],
-                'help' => $config['client_help'],
-                'cache' => $config['client_cache'] ?: Config::path('core', '/cache')
-            ));
+            
+            $options = array(
+                'id' => $client['id'] ?: $config['client_id'],
+                'key' => $client['key'] ?: $config['client_key'],
+                'host' => $client['host'] ?: $config['client_host'],
+                'port' => $client['port'] ?: $config['client_port'],
+                'version' => $client['version'] ?: $config['client_version'],
+                'api' => $client['api'] ?: $config['client_api'],
+                'help' => $client['help'] ?: $config['client_help'],
+                'cache' => $client['cache'] !== null ? $client['cache'] : $config['client_cache']
+            );
+            if ($options['cache'] === null)
+            {
+                $options['cache'] = true;
+            }
+            if ($options['cache'] && !is_string($options['cache']))
+            {
+                $options['cache'] = Config::path('core', '/cache');
+            }
+
+            self::$client = new \Forward\Client($options['id'], $options['key'], $options);
 
             self::$client = Event::trigger('request', 'client', self::$client);
         }
