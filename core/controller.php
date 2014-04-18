@@ -204,17 +204,12 @@ class Controller
         $class_contents = file_get_contents($controller_path);
 
         // Auto append controller namespace
-        $class_contents = str_replace(
-            '<?php',
+        $class_contents = preg_replace(
+            '/<\?php/',
             '<?php namespace '.$controller['namespace'].';',
-            $class_contents
+            $class_contents,
+            1
         );
-
-        // Autoload dependency
-        /*if (preg_match('/'.$controller['class'].' extends (.+Controller)/', $class_contents, $matches))
-        {
-            self::load($matches[1]);
-        }*/
 
         ob_start();
         try {
@@ -234,7 +229,17 @@ class Controller
             $error = error_get_last();
             $message = 'Parse error: '.$error['message']
                 .' in '.$controller_path.' on line '.$error['line'];
-            $message .= "<pre>".htmlspecialchars($class_contents)."</pre>";
+            $lines = explode("\n", htmlspecialchars($class_contents));
+            $eline = $error['line']-1;
+            $lines[$eline] = '<b style="background-color: #fffed9">'.$lines[$eline].'</b>';
+            $first_line = $eline > 5 ? $eline-5 : 0;
+            $lines = array_slice($lines, $first_line, 11);
+            foreach ($lines as $k => $v)
+            {
+                $lines[$k] = ($eline-4+$k).' '.$v;
+            }
+            $content = implode("\n", $lines);
+            $message .= "<pre>{$content}</pre>";
             throw new \Exception($message);
         }
     }
