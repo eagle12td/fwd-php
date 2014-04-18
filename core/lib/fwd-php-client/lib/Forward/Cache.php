@@ -30,6 +30,12 @@ namespace Forward
         public static $default_write_perms = 0777;
 
         /**
+         * Default index limit per collection
+         * @static string
+         */
+        public static $default_index_limit = 1000;
+
+        /**
          * Construct api client
          *
          * @param  string $client_id
@@ -47,7 +53,8 @@ namespace Forward
             $this->params = array(
                 'client_id' => $client_id,
                 'path' => $options['path'],
-                'write_perms' => $options['write_perms'] ?: self::$default_write_perms
+                'write_perms' => $options['write_perms'] ?: self::$default_write_perms,
+                'index_limit' => $options['index_limit'] ?: self::$default_index_limit
             );
         }
 
@@ -87,7 +94,7 @@ namespace Forward
         public function get_path()
         {
             $cache_path = rtrim($this->params['path'], '/')
-                .'/cached'.'.'.$this->params['client_id'];
+                .'/client'.'.'.$this->params['client_id'];
 
             foreach (func_get_args() as $arg)
             {
@@ -113,31 +120,39 @@ namespace Forward
         /**
          * Get cache version info
          *
-         * @return mixed
+         * @return array
          */
         public function get_versions()
         {
-            if ($json = $this->get_file('versions'))
+            if (!$this->versions)
             {
-                return json_decode($json, true);
+                $this->versions = array();
+                if ($json = $this->get_file('versions'))
+                {
+                    $this->versions = json_decode($json, true);
+                }
             }
 
-            return array();
+            return $this->versions;
         }
 
         /**
          * Get cache index info
          *
-         * @return mixed
+         * @return array
          */
         public function get_index()
         {
-            if ($json = $this->get_file('index'))
+            if (!$this->indexes)
             {
-                return json_decode($json, true);
+                $this->indexes = array();
+                if ($json = $this->get_file('index'))
+                {
+                    $this->indexes = json_decode($json, true);
+                }
             }
-            
-            return array();
+
+            return $this->indexes;
         }
 
         /**
@@ -156,21 +171,27 @@ namespace Forward
 
             $collection = $result['$collection'];
             $cached = $result['$cached'];
-            
-            if (!($version = $cached[$collection]))
+
+            // May not be cacheable
+            $this->get_versions();
+            if (!$cached[$collection] && !$this->versions[$collection])
             {
                 return;
             }
 
-            $cache_key = $this->get_key($url, $data);
-            $cache_file_path = $this->get_path($cache_key, 'result');
             $cache_content = $result;
             $cache_content['$cached'] = true;
 
-            if ($this->write_file($cache_file_path, $cache_content))
+            $cache_key = $this->get_key($url, $data);
+            $cache_file_path = $this->get_path($cache_key, 'result');
+            if ($size = $this->write_file($cache_file_path, $cache_content))
             {
-                $this->put_index($collection, $cache_key);
-                $this->put_version($collection, $version);
+                $this->put_index($collection, $cache_key, $size);
+
+                if ($version = $cached[$collection])
+                {
+                    $this->put_version($collection, $version);
+                }
             }
         }
 
@@ -180,13 +201,40 @@ namespace Forward
          * @param  string $collection
          * @param  string $cache_key
          */
-        public function put_index($collection, $key)
+        public function put_index($collection, $key, $size)
         {
-            $indexes = $this->get_index();
-            $indexes[$collection][$key] = true;
-            $index_path = $this->get_path('index');
+            // TODO: Add indexes for all expand links also,
+            // So that cached expand data gets correctly invalidated
 
-            return $this->write_file($index_path, $indexes);
+            $this->get_index();
+
+            // Limit size of index per client/collection
+            if (count($this->indexes[$collection]) >= $this->params['index_limit'])
+            {
+                $this->truncate_index($collection);
+            }
+
+            $this->indexes[$collection][$key] = $size;
+
+            $index_path = $this->get_path('index');
+            return $this->write_file($index_path, $this->indexes);
+        }
+
+        /**
+         * Truncate the cache index (usually by 1)
+         * Prefers to eject the smallest cache content first
+         *
+         * @param  string $collection
+         */
+        public function truncate_index($collection)
+        {
+            $this->get_index();
+            asort($this->indexes[$collection]);
+            reset($this->indexes[$collection]);
+            $key = key($this->indexes[$collection]);
+
+            $invalid = array("{$collection}" => $key);
+            return $this->clear_indexes($invalid);
         }
 
         /**
@@ -197,11 +245,14 @@ namespace Forward
          */
         public function put_version($collection, $version)
         {
-            $versions = $this->get_versions();
-            $versions[$collection] = $version;
-            $version_path = $this->get_path('versions');
+            if ($version)
+            {
+                $this->get_versions();
+                $this->versions[$collection] = $version;
+                $version_path = $this->get_path('versions');
 
-            return $this->write_file($version_path, $versions);
+                return $this->write_file($version_path, $this->versions);
+            }
         }
 
         /**
@@ -218,13 +269,26 @@ namespace Forward
 
             // Update versions from the server where applicable
             $invalid = array();
-            $versions = $this->get_versions();
+            $this->get_versions();
             foreach ((array)$cached as $collection => $ver)
             {
-                if ($ver != $versions[$collection])
+                if ($ver != $this->versions[$collection])
                 {
-                    $this->put_version($collection, $version);
+                    $this->put_version($collection, $ver);
                     $invalid[$collection] = true;
+
+                    // Hack to make admin.settings affect other api.settings
+                    // TODO: figure out how to do this on the server side
+                    if ($collection === 'admin.settings')
+                    {
+                        foreach ((array)$this->versions as $vcoll => $vv)
+                        {
+                            if (preg_match('/\.settings$/', $vcoll))
+                            {
+                                $invalid[$vcoll] = true;
+                            }
+                        }
+                    }
                 }
             }
 
@@ -238,19 +302,29 @@ namespace Forward
          */
         public function clear_indexes($invalid)
         {
-            $indexes = $this->get_index();
-            foreach ((array)$invalid as $collection => $b)
+            $this->get_index();
+            foreach ((array)$invalid as $collection => $key)
             {
-                foreach ((array)$indexes[$collection] as $cache_key => $b)
+                // Clear all indexes per collection
+                if ($key === true)
                 {
-                    $file_path = $this->get_path($cache_key, 'result');
-                    @unlink($file_path);
-                    unset($indexes[$collection]);
+                    foreach ((array)$this->indexes[$collection] as $cache_key => $size)
+                    {
+                        $file_path = $this->get_path($cache_key, 'result');
+                        @unlink($file_path);
+                        unset($this->indexes[$collection]);
+                    }
                 }
-
-                $index_path = $this->get_path('index');
-                $this->write_file($index_path, $indexes);
+                // Clear a single index element by key
+                else if ($key)
+                {
+                    $file_path = $this->get_path($key, 'result');
+                    @unlink($file_path);
+                    unset($this->indexes[$collection][$key]);
+                }
             }
+            $index_path = $this->get_path('index');
+            $this->write_file($index_path, $this->indexes);
         }
 
         /**
@@ -271,7 +345,7 @@ namespace Forward
                 }
             }
 
-            $r = fwrite($f, json_encode($content)); 
+            $size = fwrite($f, json_encode($content)); 
             fclose($f); 
 
             if (!rename($temp, $file_path))
@@ -282,7 +356,7 @@ namespace Forward
    
             chmod($file_path, $this->params['write_perms']); 
    
-            return true;
+            return $size;
         }
     }
 }

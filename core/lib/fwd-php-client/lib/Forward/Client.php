@@ -88,12 +88,12 @@ namespace Forward
                 'client_key' => $client_key ?: $options['client_key'],
                 'version' => $options['version'] ?: 1,
                 'session' => $options['session'] ?: session_id(),
-                'cache' => $options['cache'],
                 'help' => array(
                     'host' => $options['help']['host'] ?: self::$default_help_host,
                     'port' => $options['help']['port'] ?: self::$default_help_port
                 ),
-                'api' => $options['api']
+                'api' => $options['api'],
+                'cache' => $options['cache']
             );
 
             $this->server = new \Forward\Connection(

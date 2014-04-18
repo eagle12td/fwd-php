@@ -154,7 +154,7 @@ namespace Forward
 
             if ($message[1]['$error'])
             {
-                throw new ServerException($message[1]['$error']);
+                throw new ServerException((string)$message[1]['$error']);
             }
 
             return $message[1];
