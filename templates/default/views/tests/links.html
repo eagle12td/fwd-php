@@ -1,0 +1,12 @@
+{*{$cart = get("/carts/:last?expand=items.product")}
+{$cart.items|dump}*}
+
+{$product = get("/products/:last?expand=variants.product")}
+
+{$product.variants|dump}
+
+<ul>
+{foreach $product.variants as $v}
+	<li>{$v.name} : {$v.product.name}</li>
+{/foreach}
+</ul>

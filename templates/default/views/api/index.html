@@ -29,7 +29,7 @@
 {if $params.method}
 	<br />
 	<code>
-		<span>{$params.method|upper} {$index.url} ({$index.timing|round:3} seconds)</span>
+		<span>{$params.method|upper} {$index.url} ({$index.timing|number_format:4} seconds)</span>
 		<pre>{$index.result|json_print|escape}</pre>
 	</code>
 {/if}
