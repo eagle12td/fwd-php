@@ -9,5 +9,8 @@
 		"email": "help@getfwd.com",
 		"irc": "irc://irc.freenode.org/fwdphp",
 		"issues": "https://github.com/getfwd/fwd-php/issues"
+	},
+	"require": {
+		"php": ">=5.3.10"
 	}
 }
