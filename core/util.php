@@ -849,10 +849,6 @@ function eval_conditions($conditions, $value = null)
 {
     $match = true;
 
-    if (!$conditions)
-    {
-        return $match;
-    }
     if (is_array($conditions))
     {
         foreach ($conditions as $key => $compare)
