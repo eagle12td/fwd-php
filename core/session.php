@@ -18,6 +18,12 @@ class Session extends Util\ArrayInterface
 	private static $data = array();
 
 	/**
+	 * Session data
+	 * @var string
+	 */
+	private static $data_key = '';
+
+	/**
 	 * Singleton constructor
 	 *
 	 * @return Session
@@ -110,6 +116,7 @@ class Session extends Util\ArrayInterface
 	{
 		if (self::$data = Request::client('get', '/:sessions/:current'))
 		{
+			self::$data_key = md5(json_encode(self::$data));
 			foreach ((array)self::$data as $key => $val)
 			{
 				$_SESSION[$key] = $val;
@@ -123,7 +130,7 @@ class Session extends Util\ArrayInterface
 	 */
 	public static function write($session_id, $data)
 	{
-		$is_changed = !empty($_SESSION) && json_encode($_SESSION) != json_encode(self::$data);
+		$is_changed = (md5(json_encode($_SESSION)) != self::$data_key);
 
 		if ($is_changed)
 		{

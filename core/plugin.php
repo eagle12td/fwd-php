@@ -119,7 +119,7 @@ class Plugin
      * @param  string $plugin
      * @return void
      */
-    public static function helper ($name, $function)
+    public static function helper($name, $function)
     {
         if ($plugin = self::$discover)
         {
@@ -135,7 +135,7 @@ class Plugin
         }
     }
 
-    public static function route ()
+    public static function route()
     {
         /*
         Plugin::route(array(
@@ -145,7 +145,7 @@ class Plugin
         */
     }
 
-    public static function view ()
+    public static function view()
     {
         /*
         Plugin::view(['get'], ['/uri-filter'], function ($arg)
@@ -155,7 +155,7 @@ class Plugin
         */
     }
 
-    public static function request ()
+    public static function request()
     {
         // Should this be called Plugin::remote?
         /*
@@ -167,7 +167,7 @@ class Plugin
         */
     }
 
-    public static function dispatch ()
+    public static function dispatch()
     {
         // Should this be called Plugin::request or Plugin::middleware?
         /*
@@ -180,7 +180,7 @@ class Plugin
         */
     }
 
-    public static function error ()
+    public static function error()
     {
         /*
         Plugin::error(function ($error)
@@ -190,7 +190,7 @@ class Plugin
         */
     }
 
-    public static function event ()
+    public static function event()
     {
         /*
         Plugin::event('request.get', function ($input)

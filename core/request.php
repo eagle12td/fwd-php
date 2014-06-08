@@ -435,6 +435,60 @@ class Request
     }
 
     /**
+     * Get client configuration
+     *
+     * @return array
+     */
+    public static function client_config()
+    {
+        $config = Config::get(array(
+            'client',
+            'client_host',
+            'client_port',
+            'client_id',
+            'client_key',
+            'client_version',
+            'client_api',
+            'client_help',
+            'client_cache',
+            'clients'
+        ));
+
+        $client = self::$vars['client'] ?: $config['client'] ?: array();
+
+        if (is_string($client))
+        {
+            $client_config = $config['clients'][$client];
+            $client = array();
+            foreach ($client_config as $key => $val)
+            {
+                $client[$key] = $val;
+            }
+        }
+        
+        $client_config = array(
+            'id' => $client['id'] ?: $config['client_id'],
+            'key' => $client['key'] ?: $config['client_key'],
+            'host' => $client['host'] ?: $config['client_host'],
+            'port' => $client['port'] ?: $config['client_port'],
+            'version' => $client['version'] ?: $config['client_version'],
+            'api' => $client['api'] ?: $config['client_api'],
+            'help' => $client['help'] ?: $config['client_help'],
+            'cache' => $client['cache'] !== null ? $client['cache'] : $config['client_cache']
+        );
+        if ($client_config['cache'] === null)
+        {
+            $client_config['cache'] = true;
+        }
+        if ($client_config['cache'] && !is_string($client_config['cache']))
+        {
+            $client_config['cache'] = Config::path('core', '/cache');
+        }
+
+        return $client_config;
+    }
+
+    /**
      * Get forward client adapter
      *
      * @return \Forward\Client
@@ -445,51 +499,9 @@ class Request
         {
             require_once(Config::path('core', 'lib/fwd-php-client/lib/Forward.php'));
 
-            $config = Config::get(array(
-                'client',
-                'client_host',
-                'client_port',
-                'client_id',
-                'client_key',
-                'client_version',
-                'client_api',
-                'client_help',
-                'client_cache',
-                'clients'
-            ));
+            $config = self::client_config();
 
-            $client = self::$vars['client'] ?: $config['client'] ?: array();
-
-            if (is_string($client))
-            {
-                $client_config = $config['clients'][$client];
-                $client = array();
-                foreach ($client_config as $key => $val)
-                {
-                    $client[$key] = $val;
-                }
-            }
-            
-            $options = array(
-                'id' => $client['id'] ?: $config['client_id'],
-                'key' => $client['key'] ?: $config['client_key'],
-                'host' => $client['host'] ?: $config['client_host'],
-                'port' => $client['port'] ?: $config['client_port'],
-                'version' => $client['version'] ?: $config['client_version'],
-                'api' => $client['api'] ?: $config['client_api'],
-                'help' => $client['help'] ?: $config['client_help'],
-                'cache' => $client['cache'] !== null ? $client['cache'] : $config['client_cache']
-            );
-            if ($options['cache'] === null)
-            {
-                $options['cache'] = true;
-            }
-            if ($options['cache'] && !is_string($options['cache']))
-            {
-                $options['cache'] = Config::path('core', '/cache');
-            }
-
-            self::$client = new \Forward\Client($options['id'], $options['key'], $options);
+            self::$client = new \Forward\Client($config['id'], $config['key'], $config);
 
             self::$client = Event::trigger('request', 'client', self::$client);
         }

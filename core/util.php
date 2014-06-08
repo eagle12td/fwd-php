@@ -345,6 +345,21 @@ function camelize($string)
 }
 
 /**
+ * Split hyphenated or underscored string into words
+ *
+ * @param  string $string
+ * @return string
+ */
+function words($string)
+{
+    $string = preg_replace('/[-_]/', ' ', $string);
+    $string = strtolower($string);
+    $string = ucwords($string);
+
+    return $string;
+}
+
+/**
  * Pluralize a string
  *
  * @param  string $string

@@ -178,14 +178,14 @@ class TemplateEngine
 	{
 		if (!defined('SMARTY_DIR'))
 		{
-			define('SMARTY_DIR', Config::path('core', '/lib/Smarty/libs/'));
+			define('SMARTY_DIR', Config::path('core', '/lib/smarty/libs/'));
 			require SMARTY_DIR.'Smarty.class.php';
 		}
 
 		$this->smarty = new \Smarty;
 		$this->smarty->setCacheDir(Config::path('core', '/cache'));
 		$this->smarty->setCompileDir(Config::path('core', '/cache'));
-		$this->smarty->setConfigDir(Config::path('core', '/lib/Smarty/config/'));
+		$this->smarty->setConfigDir(Config::path('core', '/lib/smarty/config/'));
 		$this->smarty->force_compile = Config::get('smarty.force_compile', false);
 		$this->smarty->caching = Config::get('smarty.caching', false);
 

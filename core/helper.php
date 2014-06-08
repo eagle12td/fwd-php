@@ -269,6 +269,26 @@ class Helper
             },
 
             /**
+             * Turn a string into words
+             *
+             *      Usage example:
+             *          {"long-name-for-example"|words} # Long Name For Example
+             */
+            'words' => function($params)
+            {
+                if (is_string($params))
+                {
+                    $string = $params;
+                }
+                else if (!$string = $params['string'])
+                {
+                    return false;
+                }
+
+                return Util\words($string);
+            },
+
+            /**
              * Dispatch a request
              *
              *      Usage example:
@@ -736,16 +756,15 @@ class Helper
              */
             'markdown' => function($text)
             {
-                // Setup static parser.
                 static $parser;
 
                 if (!isset($parser))
                 {
-                    $parser = new \Markdown_Parser;
+                    require_once Config::path('core', 'lib/parsedown/Parsedown.php');
+                    $parser = new \Parsedown();
                 }
 
-                // Transform text using parser.
-                return $parser->transform($text);
+                return $parser->text($text);
             },
 
             /**

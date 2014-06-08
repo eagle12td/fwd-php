@@ -6,11 +6,11 @@ return array(
 	 * Default API client
 	 * -------------------------------------------------- */
 
-	'client_id' => "insert_client_id_here",
+	'client_id' => '' ?: getenv('client_id'),
 
-	'client_key' => "insert_client_key_here",
+	'client_key' => '' ?: getenv('client_key'),
 
-	'client_host' => "api.getfwd.com",
+	'client_host' => '' ?: getenv('client_host'),
 
 	/* -----------------------------------------------------
 	 * Named API client
