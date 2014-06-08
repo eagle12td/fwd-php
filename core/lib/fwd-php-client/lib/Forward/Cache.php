@@ -27,7 +27,7 @@ namespace Forward
          * Default file write permission
          * @static string
          */
-        public static $default_write_perms = 0777;
+        public static $default_write_perms = 0644;
 
         /**
          * Default index limit per collection
@@ -67,9 +67,31 @@ namespace Forward
         public function get($url, $data = null)
         {
             $key = $this->get_key($url, $data);
+
             if ($json = $this->get_file($key, 'result'))
             {
-                return json_decode($json, true);
+                $result = json_decode($json, true);
+
+                // Ensure key exists in index
+                $this->get_index();
+                $in_index = false;
+                foreach ((array)$this->indexes as $indexes)
+                {
+                    if ($indexes[$key])
+                    {
+                        $in_index = true;
+                        break;
+                    }
+                }
+                if ($in_index)
+                {
+                    return $result;
+                }
+                else
+                {
+                    $collection = $result['$collection'];
+                    $this->clear_indexes(array("{$collection}" => $key));
+                }
             }
 
             return null;
@@ -83,7 +105,7 @@ namespace Forward
          */
         public function get_key($url, $data = null)
         {
-            return md5(serialize(array($url, $data)));
+            return md5(serialize(array(trim($url, '/'), $data)));
         }
 
         /**

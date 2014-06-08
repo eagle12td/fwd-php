@@ -93,6 +93,7 @@ namespace Forward
                     'port' => $options['help']['port'] ?: self::$default_help_port
                 ),
                 'api' => $options['api'],
+                'route' => $options['route'],
                 'cache' => $options['cache']
             );
 
