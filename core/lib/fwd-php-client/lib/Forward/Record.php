@@ -89,8 +89,21 @@ namespace Forward
                         }
                         else
                         {
+                            // Avoid storing too much memory from links
+                            $mem_start = memory_get_usage();
                             $link_url = $this->link_url($field);
-                            $this->links[$field] = $this->client()->get($link_url);
+                            $result = $this->client()->get($link_url);
+                            $mem_total = memory_get_usage() - $mem_start;
+
+                            // Max one megabyte
+                            if ($mem_total < 1048576)
+                            {
+                                $this->links[$field] = $result;
+                            }
+                            else
+                            {
+                                return $result;
+                            }
                         }
                     }
 

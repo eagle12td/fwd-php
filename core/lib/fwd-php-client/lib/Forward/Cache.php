@@ -89,8 +89,10 @@ namespace Forward
                 }
                 else
                 {
-                    $collection = $result['$collection'];
-                    $this->clear_indexes(array("{$collection}" => $key));
+                    foreach ($this->result_collections($result) as $collection)
+                    {
+                        $this->clear_indexes(array("{$collection}" => $key));
+                    }
                 }
             }
 
@@ -208,8 +210,10 @@ namespace Forward
             $cache_file_path = $this->get_path($cache_key, 'result');
             if ($size = $this->write_file($cache_file_path, $cache_content))
             {
-                $this->put_index($collection, $cache_key, $size);
-
+                foreach ($this->result_collections($result) as $collection)
+                {
+                    $this->put_index($collection, $cache_key, $size);
+                }
                 if ($version = $cached[$collection])
                 {
                     $this->put_version($collection, $version);
@@ -286,28 +290,29 @@ namespace Forward
          */
         public function clear($result)
         {
-            $collection = $result['$collection'];
-            $cached = $result['$cached'];
-
-            // Update versions from the server where applicable
             $invalid = array();
             $this->get_versions();
-            foreach ((array)$cached as $collection => $ver)
-            {
-                if ($ver != $this->versions[$collection])
-                {
-                    $this->put_version($collection, $ver);
-                    $invalid[$collection] = true;
 
-                    // Hack to make admin.settings affect other api.settings
-                    // TODO: figure out how to do this on the server side
-                    if ($collection === 'admin.settings')
+            $cached = $result['$cached'];
+            foreach ($this->result_collections($result) as $collection)
+            {
+                foreach ((array)$cached as $collection => $ver)
+                {
+                    if ($ver != $this->versions[$collection])
                     {
-                        foreach ((array)$this->versions as $vcoll => $vv)
+                        $this->put_version($collection, $ver);
+                        $invalid[$collection] = true;
+
+                        // Hack to make admin.settings affect other api.settings
+                        // TODO: figure out how to do this on the server side
+                        if ($collection === 'admin.settings')
                         {
-                            if (preg_match('/\.settings$/', $vcoll))
+                            foreach ((array)$this->versions as $vcoll => $vv)
                             {
-                                $invalid[$vcoll] = true;
+                                if (preg_match('/\.settings$/', $vcoll))
+                                {
+                                    $invalid[$vcoll] = true;
+                                }
                             }
                         }
                     }
@@ -379,6 +384,28 @@ namespace Forward
             chmod($file_path, $this->params['write_perms']); 
    
             return $size;
+        }
+
+        /**
+         * Get array of collections affected by a result
+         *
+         * @param  array $result
+         * @return array
+         */
+        public function result_collections($result)
+        {
+            // Combine $collection and $expanded headers
+            $collections = array($result['$collection']);
+
+            if (is_array($result['$expanded']))
+            {
+                foreach ($result['$expanded'] as $expanded_collection)
+                {
+                    $collections[] = $expanded_collection;
+                }
+            }
+
+            return $collections;
         }
     }
 }
