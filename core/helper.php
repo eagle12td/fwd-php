@@ -805,6 +805,17 @@ class Helper
             },
 
             /**
+             * Image URL path helper
+             *
+             *      Usage example:
+             *          {image_url file=$product.images[0].image.file width=500 height=350 padded=true}
+             */
+            'image_url' => function($params)
+            {
+                return Util\image_url($params);
+            },
+
+            /**
              * Pretty print variable or JSON string as formatted JSON
              *
              *      Usage example:

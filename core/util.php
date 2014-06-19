@@ -919,3 +919,208 @@ function eval_formula($expression, $scope = null)
 {
     // TODO: ...
 }
+
+/**
+ * Process and cache an image file field, returning a local cache URL
+ *
+ * @param  array $params
+ * - file      \Forward\Record object referencing a file\
+ * - width     (optional) image width? default: original size
+ * - height    (optional) image height? default: original size
+ * - padded    (optional) pad image to avoid cropping? default: false
+ * - anchor    (optional) anchor padded images to a certain side? left, right, top, bottom, default: null
+ * - default   (optional) returns default string if image does not exist, default: false
+ * - if_exists (optional) return image URL only if the file actually exists? default: true
+ * @return string
+ */
+function image_url($params)
+{
+    if ($params['image'])
+    {
+        foreach ($params['image'] as $key => $val)
+        {
+            $params[$key] = $val;
+        }
+    }
+
+    $file = $params['file'];
+    $width = $params['width'];
+    $height = $params['height'];
+    $padded = $params['padded'];
+    $anchor = $params['anchor'];
+    $default = $params['default'];
+    $if_exists = $params['if_exists'];
+
+    // File id and md5 required
+    if (!$file['id'] || !$file['md5']) return;
+
+    // Build url path
+    $id = "image.{$file['id']}";
+    $name = "{$id}.{$file['md5']}";
+    $url = $orig_url = rtrim(\Forward\Config::path('uri'), '/').'/core/cache/'.$name;
+    if ($width || $height) $url .= ".{$width}x{$height}";
+    if ($padded) $url .= ".padded";
+    if ($anchor) $url .= ".{$anchor}";
+    $orig_url .= ".jpg";
+    $url .= ".jpg";
+
+    // Build file path
+    $path = \Forward\Config::path('root');
+    $file_path = $path.$url;
+    $orig_file_path = $path.$orig_url;
+
+    // Ideally exists already
+    if (is_file($file_path))
+    {
+        return $url;
+    }
+    
+    if (is_file($orig_file_path))
+    {
+        // Already cached
+        $src_image = imagecreatefromstring(file_get_contents($orig_file_path));
+    }
+    else
+    {
+        // Get file data directly from link to avoid bloating memory
+        if (method_exists($file, 'link_url'))
+        {
+            $file_data_link = $file->link_url('data');
+            $file_data = $file->client()->get($file_data_link);
+        }
+        if (!$file_data)
+        {
+            // File does not exist
+            if ($default || $if_exists !== false)
+            {
+                return $default ?: '';
+            }
+
+            // Return URL by default
+            return $url;
+        }
+
+        // TODO: Need to clear existing image.id
+        // ...
+
+        // Convert image data from explicit or implicit base64 encoding
+        if (is_array($file_data) && $file_data['$binary'])
+        {
+            $src_data = base64_decode($file_data);
+        }
+        else if (is_string($file_data))
+        {
+            $src_data = base64_decode($file_data);
+        }
+        if (!$src_data)
+        {
+            // Invalid format
+            return $default ?: '';
+        }
+
+        // Create orig image from file data
+        $src_image = imagecreatefromstring($src_data);
+        if ($src_image === false)
+        {
+            // Psuedo error
+            return "#/error-unsupported-image-type-or-format-or-corrupt{$url}";
+        }
+
+        // Save source file to local cache
+        if (is_writeable(dirname($orig_file_path)))
+        {
+            imagejpeg($src_image, $orig_file_path, '100');
+        }
+        else
+        {
+            throw new \Exception("Unable to save image in ".dirname($orig_file_path)."/ (permission denied)");
+        }
+    }
+        
+    // Source dimensions
+    $src_width = imagesx($src_image);
+    $src_height = imagesy($src_image);
+    
+    // Proportional width or height?
+    if (!$width)
+    {
+        $width = $src_width * ($height / $src_height);
+    }
+    else if (!$height)
+    {
+        $height = $src_height * ($width / $src_width);
+    }
+
+    /**
+     * Begin image processing
+     */
+    $dest_width = $width;
+    $dest_height = $height;
+
+    // Create blank dest image of the requested size
+    $dest_image = imagecreatetruecolor($dest_width, $dest_height);
+
+    // Correct oddly shaped images
+    $diff_width = $src_width - $dest_width;
+    $diff_height = $src_height - $dest_height;
+
+    // Do maths
+    $dest_x = 0;
+    $dest_y = 0;
+    $ratio_x = ($src_height / $dest_height);
+    $ratio_y = ($src_width / $dest_width);
+    
+    // Determine resize width, height position, with or without padding
+    if (($padded && $ratio_y <= $ratio_x) || (!$padded && $ratio_x <= $ratio_y))
+    {
+        $ratio = $ratio_x;
+        $new_height = $dest_height;
+        $new_width = round($src_width / $ratio);
+        $dest_x = -(($new_width - $dest_width) / 2);
+    }
+    else
+    {
+        $ratio = $ratio_y;
+        $new_width = $dest_width;
+        $new_height = round($src_height / $ratio);
+        $dest_y = -(($new_height - $dest_height) / 2);
+    }
+
+    // Anchor top, left, bottom, right?
+    if (strpos($anchor, 'top') !== false)
+    {
+        $dest_y = 0;
+    }
+    else if (strpos($anchor, 'bottom') !== false)
+    {
+        $dest_y = $height - $new_height;
+    }
+    if (strpos($anchor, 'left') !== false)
+    {
+        $dest_x = 0;
+    }
+    else if (strpos($anchor, 'right') !== false)
+    {
+        $dest_x = $width - $new_width;
+    }
+
+    $white = imagecolorallocate($dest_image, 255, 255, 255); // white
+    imagefilledrectangle($dest_image, 0, 0, $width, $height, $white); // fill the background
+
+    // Resample the image to a new size
+    imagecopyresampled($dest_image, $src_image, $dest_x, $dest_y, 0, 0, $new_width, $new_height, $src_width, $src_height);
+    
+    // Write image file to local cache
+    if (is_writeable(dirname($file_path)))
+    {
+        // Write the image to the correct path
+        imagejpeg($dest_image, $file_path, '100');
+    }
+    else
+    {
+        throw new \Exception("Unable to save image in ".str_replace('//', '/', dirname($file_path))."/ (permission denied)");
+    }
+
+    // Finally
+    return $url;
+}

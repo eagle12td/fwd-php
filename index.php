@@ -17,7 +17,7 @@ $paths = array(
 	// Base URI path, relative to server document root
 	'uri' => '/',
 
-	// Path to root directory (where index.php and fwd-config.php exist)
+	// Path to root directory (where index.php and config.php exist)
 	'root' => __DIR__,
 
 	// Path to core directory
