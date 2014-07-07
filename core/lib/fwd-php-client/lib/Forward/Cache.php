@@ -66,33 +66,24 @@ namespace Forward
          */
         public function get($url, $data = null)
         {
-            $key = $this->get_key($url, $data);
+            $cache_key = $this->get_key($url, $data);
 
-            if ($json = $this->get_file($key, 'result'))
+            if ($json = $this->get_file($cache_key, 'result'))
             {
                 $result = json_decode($json, true);
 
-                // Ensure key exists in index
+                // Ensure cache_key exists in index
                 $this->get_index();
-                $in_index = false;
-                foreach ((array)$this->indexes as $indexes)
-                {
-                    if ($indexes[$key])
-                    {
-                        $in_index = true;
-                        break;
-                    }
-                }
-                if ($in_index)
+
+                if ($this->indexes[$result['$collection']][$cache_key])
                 {
                     return $result;
                 }
-                else
+
+                // Not found in proper index, then clear?
+                foreach ($this->result_collections($result) as $collection)
                 {
-                    foreach ($this->result_collections($result) as $collection)
-                    {
-                        $this->clear_indexes(array("{$collection}" => $key));
-                    }
+                    $this->clear_indexes(array("{$collection}" => $cache_key));
                 }
             }
 
@@ -190,21 +181,16 @@ namespace Forward
         {
             if (!array_key_exists('$data', $result))
             {
-                return;
+                $result['$data'] = null; // Allows for null response
             }
 
-            $collection = $result['$collection'];
-            $cached = $result['$cached'];
-
-            // May not be cacheable
             $this->get_versions();
-            if (!$cached[$collection] && !$this->versions[$collection])
-            {
-                return;
-            }
+            
+            $cached = $result['$cached'];
 
             $cache_content = $result;
             $cache_content['$cached'] = true;
+            $cache_content['$data'] = $cache_content['$data'];
 
             $cache_key = $this->get_key($url, $data);
             $cache_file_path = $this->get_path($cache_key, 'result');
@@ -212,11 +198,16 @@ namespace Forward
             {
                 foreach ($this->result_collections($result) as $collection)
                 {
+                    // Collection may not be cacheable
+                    if (!$cached[$collection] && !$this->versions[$collection])
+                    {
+                        continue;
+                    }
                     $this->put_index($collection, $cache_key, $size);
-                }
-                if ($version = $cached[$collection])
-                {
-                    $this->put_version($collection, $version);
+                    if ($version = $cached[$collection])
+                    {
+                        $this->put_version($collection, $version);
+                    }
                 }
             }
         }
@@ -294,25 +285,22 @@ namespace Forward
             $this->get_versions();
 
             $cached = $result['$cached'];
-            foreach ($this->result_collections($result) as $collection)
+            foreach ((array)$cached as $collection => $ver)
             {
-                foreach ((array)$cached as $collection => $ver)
+                if ($ver != $this->versions[$collection])
                 {
-                    if ($ver != $this->versions[$collection])
-                    {
-                        $this->put_version($collection, $ver);
-                        $invalid[$collection] = true;
+                    $this->put_version($collection, $ver);
+                    $invalid[$collection] = true;
 
-                        // Hack to make admin.settings affect other api.settings
-                        // TODO: figure out how to do this on the server side
-                        if ($collection === 'admin.settings')
+                    // Hack to make admin.settings affect other api.settings
+                    // TODO: figure out how to do this on the server side
+                    if ($collection === 'admin.settings')
+                    {
+                        foreach ((array)$this->versions as $vcoll => $vv)
                         {
-                            foreach ((array)$this->versions as $vcoll => $vv)
+                            if (preg_match('/\.settings$/', $vcoll))
                             {
-                                if (preg_match('/\.settings$/', $vcoll))
-                                {
-                                    $invalid[$vcoll] = true;
-                                }
+                                $invalid[$vcoll] = true;
                             }
                         }
                     }
@@ -339,8 +327,8 @@ namespace Forward
                     {
                         $file_path = $this->get_path($cache_key, 'result');
                         @unlink($file_path);
-                        unset($this->indexes[$collection]);
                     }
+                    unset($this->indexes[$collection]);
                 }
                 // Clear a single index element by key
                 else if ($key)
