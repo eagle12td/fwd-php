@@ -18,10 +18,16 @@ class Session extends Util\ArrayInterface
 	private static $data = array();
 
 	/**
-	 * Session data
+	 * Session data key
 	 * @var string
 	 */
 	private static $data_key = '';
+
+	/**
+	 * Session read/write error
+	 * @var string
+	 */
+	private static $error = null;
 
 	/**
 	 * Singleton constructor
@@ -114,15 +120,23 @@ class Session extends Util\ArrayInterface
 	 */
 	public static function read($session_id)
 	{
-		if (self::$data = Request::client('get', '/:sessions/:current'))
-		{
-			self::$data_key = md5(json_encode(self::$data));
-			foreach ((array)self::$data as $key => $val)
+		try {
+			if (self::$data = Request::client('get', '/:sessions/:current'))
 			{
-				$_SESSION[$key] = $val;
+				self::$data_key = md5(json_encode(self::$data));
+				foreach ((array)self::$data as $key => $val)
+				{
+					$_SESSION[$key] = $val;
+				}
 			}
+			return true;
 		}
-		return true;
+		catch (\Exception $e)
+		{
+			self::$error = $e->getMessage();
+			throw $e;
+		}
+		return false;
 	}
 
 	/**
@@ -130,12 +144,16 @@ class Session extends Util\ArrayInterface
 	 */
 	public static function write($session_id, $data)
 	{
-		$is_changed = (md5(json_encode($_SESSION)) != self::$data_key);
-
-		if ($is_changed)
+		if (!self::$error)
 		{
-			Request::client('put', '/:sessions/:current', $_SESSION);
+			$is_changed = (md5(json_encode($_SESSION)) != self::$data_key);
+
+			if ($is_changed)
+			{
+				Request::client('put', '/:sessions/:current', $_SESSION);
+			}
+			return true;
 		}
-		return true;
+		return false;
 	}
 }
