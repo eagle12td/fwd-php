@@ -88,6 +88,9 @@ class Request
 
         $request = array_merge((array)self::$vars, $request);
 
+        // Restore persisted request vars
+        Request::restore();
+
         $request = Event::trigger('request', 'render', $request);
         $view_result = View::render($request);
 
@@ -382,9 +385,6 @@ class Request
         // TODO: make this a client setting
         date_default_timezone_set("America/Los_Angeles");
 
-        // Restore persisted request vars
-        Request::restore();
-
         // Load core helpers
         Request::helpers();
 
@@ -443,13 +443,18 @@ class Request
     {
         $config = Config::get(array(
             'client',
-            'client_host',
-            'client_port',
             'client_id',
             'client_key',
+            'client_host',
+            'client_port',
+            'client_clear',
+            'client_clear_port',
+            'client_verify_cert',
+            'client_session',
             'client_version',
             'client_api',
-            'client_help',
+            'client_rescue',
+            'client_proxy',
             'client_cache',
             'clients'
         ));
@@ -471,18 +476,30 @@ class Request
             'key' => $client['key'] ?: $config['client_key'],
             'host' => $client['host'] ?: $config['client_host'],
             'port' => $client['port'] ?: $config['client_port'],
+            'clear_port' => $client['clear_port'] ?: $config['client_clear_port'],
             'version' => $client['version'] ?: $config['client_version'],
             'api' => $client['api'] ?: $config['client_api'],
-            'help' => $client['help'] ?: $config['client_help'],
-            'cache' => $client['cache'] !== null ? $client['cache'] : $config['client_cache']
+            'rescue' => $client['rescue'] ?: $config['client_rescue'],
+            'proxy' => $client['proxy'] ?: $config['client_proxy'],
+            'verify_cert' => $client['verify_cert'] !== null ? $client['verify_cert']: $config['client_verify_cert'],
+            'clear' => $client['clear'] !== null ? $client['clear'] : $config['client_clear'],
+            'cache' => $client['cache'] !== null ? $client['cache'] : $config['client_cache'],
+            'session' => $client['session'] !== null ? $client['session'] : $config['client_session']
         );
         if ($client_config['cache'] === null)
         {
-            $client_config['cache'] = true;
+            $client_config['cache'] = true; // Default cache enabled
         }
-        if ($client_config['cache'] && !is_string($client_config['cache']))
+        if ($client_config['cache'])
         {
-            $client_config['cache'] = Config::path('core', '/cache');
+            if (is_bool($client_config['cache']))
+            {
+                $client_config['cache'] = array();
+            }
+            if (!$client_config['cache']['path'])
+            {
+                $client_config['cache']['path'] = Config::path('core', '/cache');
+            }
         }
 
         return $client_config;
@@ -615,7 +632,8 @@ class Request
         }
         if (!empty($messages))
         {
-            $_SESSION['__persisted_messages'] = $messages;
+            $session = self::session();
+            $session['__messages'] = $messages;
         }
     }
 
@@ -626,14 +644,12 @@ class Request
      */
     public static function restore()
     {
-        if ($_SESSION['__persisted_messages'])
-        {
-            foreach ((array)$_SESSION['__persisted_messages'] as $severity => $message)
-            {
+        $session = self::session();
+        if ($session['__messages']) {
+            foreach ((array)$session['__messages'] as $severity => $message) {
                 self::message($severity, $message);
             }
-
-            $_SESSION['__persisted_messages'] = null;
+            $session['__messages'] = null;
         }
     }
 }
