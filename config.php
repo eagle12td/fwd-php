@@ -6,14 +6,13 @@ return array(
 	 * Default API client
 	 * -------------------------------------------------- */
 
-	'client_id' => '' ?: getenv('client_id'),
-
-	'client_key' => '' ?: getenv('client_key'),
-
-	'client_host' => '' ?: getenv('client_host'),
+	'client' => array(
+		'id' => 		'' ?: getenv('client_id'),
+		'client_key' => '' ?: getenv('client_key')
+	),
 
 	/* -----------------------------------------------------
-	 * Named API client
+	 * Named API clients
 	 * -------------------------------------------------- */
 
 	'clients' => array(
