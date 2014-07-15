@@ -29,22 +29,28 @@ namespace Forward
     class Connection
     {
         /**
-         * Indicates when connection is active
-         * @var resource
+         * Connection status
+         * @var bool
          */
         public $connected;
 
         /**
          * Connection host
-         * @var resource
+         * @var string
          */
-        protected $host;
+        public $host;
 
         /**
          * Connection port
-         * @var resource
+         * @var int
          */
-        protected $port;
+        public $port;
+
+        /**
+         * Connection options
+         * @var bool
+         */
+        public $options;
 
         /**
          * Socket stream
@@ -53,16 +59,23 @@ namespace Forward
         protected $stream;
 
         /**
+         * Last request identifier
+         * @var int
+         */
+        protected $last_request_id;
+
+        /**
          * Construct a connection
          *
          * @param  string $host
          * @param  string $port
          */
-        public function __construct($host, $port)
+        public function __construct($host, $port, $options = null)
         {
             $this->host = $host;
             $this->port = $port;
-            $this->connected = null;
+            $this->options = $options ?: array();
+            $this->connected = false;
         }
 
         /**
@@ -72,20 +85,32 @@ namespace Forward
          */
         public function connect()
         {
-            $this->stream = @\stream_socket_client(
-                "tcp://{$this->host}:{$this->port}",
-                $error,
-                $error_msg,
-                5
-                // TODO: TLS
-            );
-            if ($this->stream)
-            {
-                $this->connected = true;
+            if ($this->options['clear']) {
+                $this->stream = stream_socket_client(
+                    "tcp://{$this->host}:{$this->port}", $error, $error_msg, 10
+                );
+            } else {
+                $context = stream_context_create(array(
+                    'ssl' => array(
+                        'verify_peer' => $this->options['verify_cert'] ? true : false,
+                        'allow_self_signed' => $this->options['verify_cert'] ? false : true,
+                        'verify_depth' => 5,
+                        'SNI_enabled' => true
+                    )
+                ));
+                $this->stream = stream_socket_client(
+                    "tls://{$this->host}:{$this->port}", $error, $error_msg, 10,
+                    STREAM_CLIENT_CONNECT, $context
+                );
             }
-            else
-            {
-                throw new NetworkException("Unable to connect to {$this->host}:{$this->port} (Error:{$error} {$error_msg})");
+            if ($this->stream) {
+                $this->connected = true;
+            } else {
+                $error_msg = $error_msg ?: 'Peer certificate rejected';
+                throw new NetworkException(
+                    "Unable to connect to {$this->host}:{$this->port} "
+                    ."(Error:{$error} {$error_msg})"
+                );
             }
         }
 
@@ -96,14 +121,12 @@ namespace Forward
          * @param  array $args
          * @return mixed
          */
-        public function request($method, $args = array(), $id = null)
+        public function request($method, $args = array())
         {
             if (!$this->stream)
             {
                 throw new NetworkException("Unable to execute '{$method}' (Error: Connection closed)");
             }
-
-            array_push($args, $id);
 
             $this->request_write($this->stream, $method, $args);
 
@@ -120,11 +143,8 @@ namespace Forward
          */
         private function request_write($stream, $method, $args)
         {
-            $callbacks = new \stdclass();
-            $callbacks->{++$this->callback_number} = array(count($args));
-
-            // Write request
-            $request = array(strtolower($method), $args, $callbacks);
+            $req_id = $this->request_id(array($method, $args));
+            $request = array($method, $args, $req_id);
             fwrite($stream, json_encode($request)."\n");
         }
 
@@ -147,17 +167,40 @@ namespace Forward
             {
                 throw new ProtocolException("Unable to parse response from server ({$response})");
             }
-            else if (!is_array($message) || !is_array($message[1]))
+            else if (!is_array($message) || !is_array($message[0]))
             {
-                throw new ProtocolException("Invalid response from server ({$message})");
+                throw new ProtocolException("Invalid response from server (".json_encode($message).")");
             }
 
-            if ($message[1]['$error'])
+            $data = $message[0];
+            $id = $message[1];
+
+            if ($data['$error'])
             {
-                throw new ServerException((string)$message[1]['$error']);
+                throw new ServerException((string)$data['$error']);
             }
 
-            return $message[1];
+            return $data;
+        }
+
+        /**
+         * Get or create a unique request identifier
+         *
+         * @param  string $method
+         * @param  string $url
+         * @param  array $data
+         * @return mixed
+         */
+        function request_id($set_params = null)
+        {
+            if ($set_params !== null)
+            {
+                $hash_id = openssl_random_pseudo_bytes(20);
+                $this->last_request_id = md5(
+                    serialize(array($hash_id, $set_params))
+                );
+            }
+            return $this->last_request_id;
         }
 
         /**
