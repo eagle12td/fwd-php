@@ -7,19 +7,7 @@
 		{/foreach}
 	</select>
 	<select name="url" class="form-control" style="width:130px">
-		{$index.options[':activity'] = [url => "/:activity"]}
-		{$index.options[':client'] = [url => "/:client"]}
-		{$index.options[':files'] = [url => "/:files"]}
-		{$index.options[':imports'] = [url => "/:imports"]}
-		{$index.options[':layouts'] = [url => "/:layouts"]}
-		{$index.options[':models'] = [url => "/:models"]}
-		{$index.options[':notes'] = [url => "/:notes"]}
-		{$index.options[':notifications'] = [url => "/:notifications"]}
-		{$index.options[':options'] = [url => "/:options"]}
-		{$index.options[':sessions'] = [url => "/:sessions"]}
-		{$index.options[':settings'] = [url => "/:settings"]}
-		{$index.options[':templates'] = [url => "/:templates"]}
-		{$index.options[':users'] = [url => "/:users"]}
+		{* Output models then metamodels in order *}
 		{foreach $index.options as $model}
 			<option {if $params.url == $model.url}selected="selected"{/if} value="{$model.url}">{$model.url}</option>
 		{/foreach}
