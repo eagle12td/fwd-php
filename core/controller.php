@@ -34,38 +34,29 @@ class Controller
     {
         if (!$controllers) return;
 
-        if (is_array($controllers))
-        {
+        if (is_array($controllers)) {
             $was_array = true;
-        }
-        else
-        {
+        } else {
             $was_array = false;
             $controllers = array($controllers);
         }
         
         $vars = Template::engine()->get();
 
-        foreach ($controllers as $name)
-        {
+        foreach ($controllers as $name) {
             $controller = self::route($name, $vars['request']);
 
-            if (!is_file($controller['path']))
-            {
+            if (!is_file($controller['path'])) {
                 $controller['path'] = $controller['extend']['path'];
 
-                if (!is_file($controller['path']))
-                {
+                if (!is_file($controller['path'])) {
                     throw new \Exception('Controller not found at '.$controller['path']);
                 }
             }
 
-            if ($was_array)
-            {
+            if ($was_array) {
                 $results[] = self::invoke_method($controller, &$vars, $params);
-            }
-            else
-            {
+            } else {
                 $results = self::invoke_method($controller, &$vars, $params);
             }
         }
@@ -78,19 +69,20 @@ class Controller
     /**
      * Invoke a controller method
      *
+     * @param  array $controller
+     * @param  array $vars
+     * @param  array $params
      */
     public static function invoke_method($controller, &$vars = array(), $params = array())
     {
-        if (!self::$classes)
-        {
+        if (!self::$classes) {
             spl_autoload_register('\\Forward\\Controller::autoload');
         }
 
         $class = "{$controller['namespace']}\\{$controller['class']}";
         self::$classes[$class] = $controller;
 
-        if (!class_exists($class))
-        {
+        if (!class_exists($class)) {
             throw new \Exception($controller['class'].' not defined in '.$controller['path']);
         }
 
@@ -98,51 +90,40 @@ class Controller
         $default_method = $controller['method'] ?: $instance->default;
         $method = $default_method ?: 'session';
 
-        if (is_null($method))
-        {
+        if (is_null($method)) {
             return;
         }
         
-        if (method_exists($instance, $method))
-        {
-            if (!array_key_exists($method, (array)self::$results))
-            {
-                foreach ((array)$params as $var => $value)
-                {
+        if (method_exists($instance, $method)) {
+            if (!array_key_exists($method, (array)self::$results)) {
+                foreach ((array)$params as $var => $value) {
                     $vars[$var] = $value;
                 }
-                foreach ((array)$vars as $var => $value)
-                {
+                foreach ((array)$vars as $var => $value) {
                     $instance->{$var} = $value;
                 }
 
                 $result = call_user_method_array($method, $instance, array($params));
-                foreach ((array)$instance as $var => $value)
-                {
+                foreach ((array)$instance as $var => $value) {
                     $vars[$var] = $value;
                 }
 
                 return self::$results[$method] = $result;
-            }
-            else
-            {
+            } else {
                 self::$results[$method];
             }
-        }
-        else
-        {
-            if ($default_method)
-            {
+        } else {
+            if ($default_method) {
                 throw new \Exception("Controller method '".$method."()' not defined in ".$controller['class']);
             }
         }
-
-        return;
     }
 
     /**
      * Route to a controller by name
      *
+     * @param  string $name
+     * @param  array $request
      */
     public static function route($name, $request)
     {
@@ -176,18 +157,16 @@ class Controller
     /**
      * Autoloader for template controllers
      *
+     * @param  string $class_name
      */
     public static function autoload($class_name)
     {
         $controller = self::$classes[$class_name];
 
-        if (is_file($controller['path']))
-        {
+        if (is_file($controller['path'])) {
             // Include all controllers in this path, and also extend paths
-            foreach (array($controller['extend'], $controller) as $ctrl)
-            {
-                foreach (glob(dirname($ctrl['path']).'/*Controller.php') as $controller_path)
-                {
+            foreach (array($controller['extend'], $controller) as $ctrl) {
+                foreach (glob(dirname($ctrl['path']).'/*Controller.php') as $controller_path) {
                     self::load($controller_path, $ctrl);
                 }
             }
@@ -198,6 +177,7 @@ class Controller
      * Load and evaluate a controller from a file
      *
      * @param  string $controller_path
+     * @param  array $controller
      */
     public static function load($controller_path, $controller)
     {
@@ -214,9 +194,7 @@ class Controller
         ob_start();
         try {
             $result = eval('?>'.$class_contents);
-        }
-        catch (\Exception $e)
-        {
+        } catch (\Exception $e) {
             $e_class = get_class($e);
             $message = $controller['class'].': '.$e_class.' "'.$e->getMessage()
                 .'" in '.$controller_path.' on line '.$e->getLine();
@@ -224,8 +202,7 @@ class Controller
         }
         ob_end_clean();
 
-        if ($result === false)
-        {
+        if ($result === false) {
             $error = error_get_last();
             $message = 'Parse error: '.$error['message']
                 .' in '.$controller_path.' on line '.$error['line'];
@@ -234,8 +211,7 @@ class Controller
             $lines[$eline] = '<b style="background-color: #fffed9">'.$lines[$eline].'</b>';
             $first_line = $eline > 5 ? $eline-5 : 0;
             $lines = array_slice($lines, $first_line, 11);
-            foreach ($lines as $k => $v)
-            {
+            foreach ($lines as $k => $v) {
                 $lines[$k] = ($eline-4+$k).' '.$v;
             }
             $content = implode("\n", $lines);

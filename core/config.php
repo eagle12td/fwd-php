@@ -42,25 +42,20 @@ class Config
      */
     public static function resolve($path)
     {
-        if (is_array($path))
-        {
-            foreach ($path as $key)
-            {
+        if (is_array($path)) {
+            foreach ($path as $key) {
                 $result[$key] = self::resolve($key);
             }
             return $result;
         }
-        if (empty($path))
-        {
+        if (empty($path)) {
             return null;
         }
 
         $current = self::$params;
         $p = strtok($path, '.');
-        while ($p !== false)
-        {
-            if (!isset($current[$p]))
-            {
+        while ($p !== false) {
+            if (!isset($current[$p])) {
                 return null;
             }
             $current = $current[$p];
@@ -78,12 +73,9 @@ class Config
      */
     public static function load($file_path = null)
     {
-        if ($file_path)
-        {
+        if ($file_path) {
             self::$params = require($file_path);
-        }
-        else
-        {
+        } else {
             // Set paths config from global
             self::$paths = $GLOBALS['paths'];
 
@@ -91,8 +83,7 @@ class Config
             self::$params = require(self::path('root', 'config'.EXT));
 
             // Load and merge local config if exists
-            if (is_file($local = self::path('root', 'local-config'.EXT)))
-            {
+            if (is_file($local = self::path('root', 'local-config'.EXT))) {
                 $local_params = require($local);
                 self::$params = Util\merge(self::$params, $local_params);
             }
@@ -107,14 +98,11 @@ class Config
      */
     public static function path($name, $append = null)
     {
-        if ($path = self::$paths[$name])
-        {
-            if ($append)
-            {
+        if ($path = self::$paths[$name]) {
+            if ($append) {
                 $path .= DIRECTORY_SEPARATOR.ltrim($append, DIRECTORY_SEPARATOR);
             }
         }
-
         return $path;
     }
 }

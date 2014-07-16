@@ -6,31 +6,23 @@ class ApiController
     {
         $options = array();
 
-        if ($this->params['url'])
-        {
+        if ($this->params['url']) {
+            $start = microtime(true);
             $relative_url = $this->params['rel_url'];
-            if ($relative_url !== "" && $relative_url[0] !== "/")
-            {
+            if ($relative_url !== "" && $relative_url[0] !== "/") {
                 $relative_url = "/{$relative_url}";
             }
             $url = "{$this->params['url']}{$relative_url}";
-
-            $start = microtime(true);
             try {
-                if ($url === '/:options')
-                {
+                if ($url === '/:options') {
                     $options = $this->get_options_sorted();
                     $result = $options;
-                }
-                else
-                {
+                } else {
                     $result = request($this->params['method'] ?: "GET", $url);
                     $result = $result instanceof \Forward\Resource
                         ? $result->dump(true, false) : $result;
                 }
-            }
-            catch(Forward\ServerException $e)
-            {
+            } catch(Forward\ServerException $e) {
                 $result = array('$error' => $e->getMessage());
             }
             $end = microtime(true);
@@ -52,25 +44,16 @@ class ApiController
         $options = $options instanceof \Forward\Resource 
             ? $options->data() : $options;
 
-        uksort($options, function($a, $b)
-        {
-            if ($a[0] == ':')
-            {
-                if ($b[0] == ':')
-                {
+        uksort($options, function($a, $b) {
+            if ($a[0] == ':') {
+                if ($b[0] == ':') {
                     return substr($a, 1) > substr($b, 1);
-                }
-                else
-                {
+                } else {
                     return 1;
                 }
-            }
-            else if ($b[0] == ':')
-            {
+            } else if ($b[0] == ':') {
                 return -1;
-            }
-            else
-            {
+            } else {
                 return $a > $b;
             }
         });

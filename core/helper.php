@@ -27,16 +27,14 @@ class Helper
     public static function register($name, $function)
     {
         // Check name for sanity
-        if (!preg_match('/^[a-z_]\w+$/i', $name))
-        {
+        if (!preg_match('/^[a-z_]\w+$/i', $name)) {
             throw new \Exception("Invalid helper name '{$name}'");
         }
 
         self::$registry[$name] = $function;
 
         // Register global caller if not exists
-        if (!function_exists($name))
-        {
+        if (!function_exists($name)) {
             eval("function {$name} () { return call_user_func_array('\\".__NAMESPACE__."\Helper::call', array('{$name}', func_get_args())); }");
         }
 
@@ -66,8 +64,7 @@ class Helper
         $args = func_get_args();
         $args = $args[1];
 
-        if ($func = self::get($name))
-        {
+        if ($func = self::get($name)) {
             return call_user_func_array($func, $args);
         }
     }
@@ -80,8 +77,7 @@ class Helper
      */
     public static function registry()
     {
-        if (!empty(self::$registry))
-        {
+        if (!empty(self::$registry)) {
             return self::$registry;
         }
     }
@@ -94,8 +90,7 @@ class Helper
     public static function core()
     {
         $core_handlers = self::core_handlers();
-        foreach ($core_handlers as $name => $function)
-        {
+        foreach ($core_handlers as $name => $function) {
             self::register($name, $function);
         }
 
@@ -109,8 +104,7 @@ class Helper
     public static function load($helper_file)
     {
         $helpers = require($helper_file);
-        foreach ($helpers as $name => $function)
-        {
+        foreach ($helpers as $name => $function) {
             self::register($name, $function);
         }
         
@@ -137,7 +131,6 @@ class Helper
             'age' => function($params)
             {
                 $date = is_array($params) ? $params['of'] : $params;
-
                 return Util\age($date);
             },
 
@@ -152,7 +145,6 @@ class Helper
             'age_date' => function($params)
             {
                 $date = is_array($params) ? $params['of'] : $params;
-
                 return Util\age_date($date);
             },
 
@@ -169,81 +161,62 @@ class Helper
              */
             'args' => function($pattern = null, $view_tpl = null)
             {
-                if (empty($pattern))
-                {
+                if (empty($pattern)) {
                     return;
                 }
 
                 // Array of patterns?
-                if (is_array($pattern))
-                {
+                if (is_array($pattern)) {
                     $parts = array();
                     $defaults = array();
                     $key = 0;
-                    foreach ($pattern as $id => $name)
-                    {
-                        if (!is_numeric($id))
-                        {
+                    foreach ($pattern as $id => $name) {
+                        if (!is_numeric($id)) {
                             $defaults[$key] = $name;
                             $name = $id;
                         }
-
                         $parts[$key] = preg_replace('/[^a-z0-9\_*\/]/i', '', $name);
                         $key++;
                     }
                 }
-                // String pattern.
-                else
-                {
+                // String pattern
+                else {
                     $pattern = preg_replace('/[^a-z0-9\_*\/]/i', '', $pattern);
 
-                    // Parse params and create resource stack.
+                    // Parse params and create resource stack
                     $parts = explode('/', trim($pattern, '/'));
                 }
 
-                // Apply pattern to current request context args.
+                // Apply pattern to current request context args
                 $request = Template::engine()->get('request');
                 $args = $request['args'];
                 $new_args = array();
-                foreach ($parts as $key => $name)
-                {
+                foreach ($parts as $key => $name) {
                     // Greedy?
-                    if (strpos($name, '*') !== false)
-                    {
+                    if (strpos($name, '*') !== false) {
                         $greedy = array_slice($args, $key);
                         $name = str_replace('*', '', $name);
                         $new_args[$name] = str_replace('*', '', implode('/', $greedy));
-                    }
-                    else
-                    {
+                    } else {
                         $new_args[$name] = $args[$key];
                     }
-
                     // Default value?
-                    if (!$new_args[$name] && $defaults[$key])
-                    {
+                    if (!$new_args[$name] && $defaults[$key]) {
                         $new_args[$name] = $defaults[$key];
                     }
-
                     // Assign to view?
-                    if (isset($new_args[$name]))
-                    {
-                        if (is_object($view_tpl) && method_exists($view_tpl, 'assign'))
-                        {
+                    if (isset($new_args[$name])) {
+                        if (is_object($view_tpl) && method_exists($view_tpl, 'assign')) {
                             $view_tpl->assign($name, $new_args[$name]);
                         }
                     }
-
-                    // Greedy is the last arg.
-                    if ($greedy)
-                    {
+                    // Greedy is the last arg
+                    if ($greedy) {
                         break;
                     }
                 }
-
                 // Return instead of assign?
-                if (!is_object($view_tpl))
-                {
+                if (!is_object($view_tpl)) {
                     return $new_args;
                 }
             },
@@ -256,12 +229,9 @@ class Helper
              */
             'camelize' => function($params)
             {
-                if (is_string($params))
-                {
+                if (is_string($params)) {
                     $string = $params;
-                }
-                else if (!$string = $params['string'])
-                {
+                } else if (!$string = $params['string']) {
                     return false;
                 }
 
@@ -276,12 +246,9 @@ class Helper
              */
             'words' => function($params)
             {
-                if (is_string($params))
-                {
+                if (is_string($params)) {
                     $string = $params;
-                }
-                else if (!$string = $params['string'])
-                {
+                } else if (!$string = $params['string']) {
                     return false;
                 }
 
@@ -310,8 +277,7 @@ class Helper
             {
                 $args = func_get_args();
                 $dump = call_user_func_array(__NAMESPACE__.'\Util\dump', $args);
-                foreach ((array)$dump as $val)
-                {
+                foreach ((array)$dump as $val) {
                     print '<pre class="prettyprint linenums">'.htmlspecialchars($val).'</pre>';
                 }
             },
@@ -328,28 +294,22 @@ class Helper
             {
                 $request = Template::engine()->get('request');
 
-                if (is_array($params))
-                {
+                if (is_array($params)) {
                     $redirect = $params['redirect'] ?: ($params['refresh'] ? $_SERVER['REQUEST_URI'] : null);
 
-                    if ($params['error'])
-                    {
+                    if ($params['error']) {
                         Request::message('error', $params['error'], $redirect);
                         $request['errors'][] = $params['error'];
                     }
-                    if ($params['warning'])
-                    {
+                    if ($params['warning']) {
                         Request::message('warning', $params['warn'], $redirect);
                         $request['warnings'][] = $params['warn'];
                     }
-                    if ($params['notice'])
-                    {
+                    if ($params['notice']) {
                         Request::message('notice', $params['notice'], $redirect);
                         $request['notices'][] = $params['notice'];
                     }
-                }
-                else if (is_string($params))
-                {
+                } else if (is_string($params)) {
                     $notice = $params;
                     Request::message('notice', $notice);
                     $request['notices'][] = $notice;
@@ -423,12 +383,9 @@ class Helper
              */
             'hyphenate' => function($params)
             {
-                if (is_string($params))
-                {
+                if (is_string($params)) {
                     $string = $params;
-                }
-                else if (!$string = $params['string'])
-                {
+                } else if (!$string = $params['string']) {
                     return false;
                 }
 
@@ -510,16 +467,12 @@ class Helper
              */
             'redirect' => function($params)
             {
-                if (is_array($params))
-                {
+                if (is_array($params)) {
                     $url = $params['to'] ?: $params['url'];
-                    if (!$url && $params['refresh'])
-                    {
+                    if (!$url && $params['refresh']) {
                         $url = $_SERVER['REQUEST_URI'];
                     }
-                }
-                else
-                {
+                } else {
                     $url = $params;
                 }
 
@@ -556,29 +509,22 @@ class Helper
                 $request = Template::engine()->get('request');
                 $view_request = $orig_request = $request;
 
-                if (is_string($params))
-                {
+                if (is_string($params)) {
                     $view_request['path'] = $params;
-                }
-                else if (is_array($params))
-                {
+                } else if (is_array($params)) {
                     $view_request['path'] = $params['view'];
                     unset($params['view']);
                     $vars = $params;
                 }
 
                 // Handle relative and absolute paths
-                if (substr($view_request['path'], 0, 2) === '//')
-                {
+                if (substr($view_request['path'], 0, 2) === '//') {
                     $template_name = substr($view_request['path'], 2);
                     $template_name = substr($template_name, 0, strpos($template_name, '/'));
                     $view_request['template'] = $template_name;
                     $view_request['path'] = substr($view_request['path'], strpos($view_request['path'], '/', 2));
                     $view_request['template_path'] = preg_replace('/\/[^\/]+$/', '/'.$template_name, $view_request['template_path']);
-                    
-                }
-                else if ($view_request['path'][0] !== '/')
-                {
+                } else if ($view_request['path'][0] !== '/') {
                     $parent_tpl = Template::engine()->templates(0)->template_resource;
                     $parent_path = str_replace($view_request['template_path'].'/views', '', $parent_tpl);
                     $view_request['path'] = preg_replace('/\/[^\/]+$/', '/'.$view_request['path'], $parent_path);
@@ -592,42 +538,28 @@ class Helper
 
                 Template::engine()->set('request', $view_request);
 
-                if (is_file($view_path))
-                {
+                if (is_file($view_path)) {
                     $result .= Template::engine()->render($view_path, $vars, $return_vars);
-                }
-                else
-                {
+                } else {
                     $extend_view_path = str_replace($view_request['template_path'], $view_request['extend_template_path'], $view_path);
-                    if (is_file($extend_view_path))
-                    {
+                    if (is_file($extend_view_path)) {
                         $result .= Template::engine()->render($extend_view_path, $vars, $return_vars);
-                    }
-                    else
-                    {
-                        if (Template::engine()->depth() > 0)
-                        {
+                    } else {
+                        if (Template::engine()->depth() > 0) {
                             // Try hidden pathing
                             $hidden_view = preg_replace('/([^\/]+)$/', '/_$1', $view['view']);
                             $hidden_view_path = $view_request['template_path'].'/views'.$hidden_view.'.'.$view['output'];
 
-                            if (is_file($hidden_view_path))
-                            {
+                            if (is_file($hidden_view_path)) {
                                     dump(13);exit;
                                 $result .= Template::engine()->render($hidden_view_path, $vars, $return_vars);
-                            }
-                            else
-                            {
+                            } else {
                                 $extend_hidden_view_path = str_replace($view_request['template_path'], $view_request['extend_template_path'], $hidden_view_path);
-                                if (is_file($extend_hidden_view_path))
-                                {
+                                if (is_file($extend_hidden_view_path)) {
                                     dump(1);exit;
                                     $result .= Template::engine()->render($extend_hidden_view_path, $vars, $return_vars);
-                                }
-                                else
-                                {
-                                    if ((!isset($params['required']) || $params['required']))
-                                    {
+                                } else {
+                                    if ((!isset($params['required']) || $params['required'])) {
                                         $tpl_path = Config::path('templates');
                                         $parent_path = Template::engine()->templates(0)->template_resource;
                                         $view_path = str_replace($tpl_path, '', $view_path);
@@ -676,7 +608,7 @@ class Helper
             },
 
             /**
-             * Pluralize a string
+             * Pluralize an english singular string
              * Converts a word to english plural form, depending on 'if_many' value.
              *
              *      Usage example:
@@ -687,17 +619,13 @@ class Helper
              */
             'pluralize' => function($params)
             {
-                if (is_string($params))
-                {
+                if (is_string($params)) {
                     $string = $params;
-                }
-                else if (!$string = $params['word'])
-                {
+                } else if (!$string = $params['word']) {
                     return false;
                 }
 
-                if (isset($params['if_many']))
-                {
+                if (isset($params['if_many'])) {
                     $if_many = (is_array($params['if_many']))
                         ? count($params['if_many'])
                         : $params['if_many'];
@@ -707,7 +635,7 @@ class Helper
             },
 
             /**
-             * Singularize a string
+             * Singularize an english plural string
              * Converts a word to english singular form
              *
              * @deprecated Use at your own risk
@@ -717,12 +645,9 @@ class Helper
              */
             'singularize' => function($params)
             {
-                if (is_string($params))
-                {
+                if (is_string($params)) {
                     $string = $params;
-                }
-                else if (!$string = $params['word'])
-                {
+                } else if (!$string = $params['word']) {
                     return false;
                 }
 
@@ -736,12 +661,9 @@ class Helper
              */
             'underscore' => function($params)
             {
-                if (is_string($params))
-                {
+                if (is_string($params)) {
                     $string = $params;
-                }
-                else if (!$string = $params['string'])
-                {
+                } else if (!$string = $params['string']) {
                     return false;
                 }
 
@@ -758,8 +680,7 @@ class Helper
             {
                 static $parser;
 
-                if (!isset($parser))
-                {
+                if (!isset($parser)) {
                     require_once Config::path('core', 'lib/parsedown/Parsedown.php');
                     $parser = new \Parsedown();
                 }
@@ -779,8 +700,7 @@ class Helper
 
                 $request = Template::engine()->get('request');
 
-                if (preg_match('/\/\/([^\/]+)/', $asset_url, $matches))
-                {
+                if (preg_match('/\/\/([^\/]+)/', $asset_url, $matches)) {
                     $request['template'] = $matches[1];
                     $asset_url = str_replace($matches[0], '', $asset_url);
                 }
@@ -790,11 +710,9 @@ class Helper
                 $asset = '/assets/'.ltrim($asset_url, '/');
                 $asset_path = $request['template_path'].$asset;
 
-                if (!is_file($asset_path))
-                {
+                if (!is_file($asset_path)) {
                     $extend_asset_path = $request['extend_template_path'].$asset;
-                    if (is_file($extend_asset_path))
-                    {
+                    if (is_file($extend_asset_path)) {
                         $asset_path = $extend_asset_path;
                     }
                 }

@@ -123,8 +123,7 @@ namespace Forward
          */
         public function request($method, $args = array())
         {
-            if (!$this->stream)
-            {
+            if (!$this->stream) {
                 throw new NetworkException("Unable to execute '{$method}' (Error: Connection closed)");
             }
 
@@ -157,26 +156,21 @@ namespace Forward
         private function request_response($stream)
         {
             // Block until server responds
-            if (false === ($response = fgets($stream)))
-            {
+            if (false === ($response = fgets($stream))) {
                 $this->close();
                 throw new ProtocolException("Unable to read response from server");
             }
 
-            if (null === ($message = json_decode(trim($response), true)))
-            {
+            if (null === ($message = json_decode(trim($response), true))) {
                 throw new ProtocolException("Unable to parse response from server ({$response})");
-            }
-            else if (!is_array($message) || !is_array($message[0]))
-            {
+            } else if (!is_array($message) || !is_array($message[0])) {
                 throw new ProtocolException("Invalid response from server (".json_encode($message).")");
             }
 
             $data = $message[0];
             $id = $message[1];
 
-            if ($data['$error'])
-            {
+            if ($data['$error']) {
                 throw new ServerException((string)$data['$error']);
             }
 
@@ -193,8 +187,7 @@ namespace Forward
          */
         function request_id($set_params = null)
         {
-            if ($set_params !== null)
-            {
+            if ($set_params !== null) {
                 $hash_id = openssl_random_pseudo_bytes(20);
                 $this->last_request_id = md5(
                     serialize(array($hash_id, $set_params))

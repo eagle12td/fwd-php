@@ -32,10 +32,8 @@ class Plugin
     public static function find($path)
     {
         $plugins = array();
-        foreach (scandir($path) as $plugin)
-        {
-            if ($plugin[0] != "." && is_dir($path.'/'.$plugin))
-            {
+        foreach (scandir($path) as $plugin) {
+            if ($plugin[0] != "." && is_dir($path.'/'.$plugin)) {
                 $plugins[$plugin] = array(
                     'enabled' => true
                 );
@@ -57,13 +55,11 @@ class Plugin
 
         $plugins = self::find($path);
 
-        if (!empty($ext_plugins))
-        {
+        if (!empty($ext_plugins)) {
             $plugins = Util\merge($plugins, $ext_plugins);
         }
 
-        foreach ((array)$plugins as $plugin => $settings)
-        {
+        foreach ((array)$plugins as $plugin => $settings) {
             if (!$settings['enabled']) continue;
 
             $load_path = $path.'/'.$plugin.'/plugin.php';
@@ -87,12 +83,10 @@ class Plugin
      */
     private static function config($plugin, $config_path = null)
     {
-        if (!$config_path)
-        {
+        if (!$config_path) {
             $config_path = Config::path('plugins', $plugin.'/plugin.json');
         }
-        if (is_file($config_path))
-        {
+        if (is_file($config_path)) {
             $json = file_get_contents($config_path);
             return json_decode($json, true);
         }
@@ -105,8 +99,7 @@ class Plugin
      */
     public static function registry($plugin = null)
     {
-        if (!empty(self::$registry))
-        {
+        if (!empty(self::$registry)) {
             return ($plugin)
                 ? self::$registry[$plugin]
                 : self::$registry;
@@ -121,16 +114,12 @@ class Plugin
      */
     public static function helper($name, $function)
     {
-        if ($plugin = self::$discover)
-        {
-            if (self::$registry[$plugin]['helpers'][$name] !== false)
-            {
+        if ($plugin = self::$discover) {
+            if (self::$registry[$plugin]['helpers'][$name] !== false) {
                 self::$registry[$plugin]['helpers'][$name] = true;
                 Helper::register($name, $function);
             }
-        }
-        else
-        {
+        } else {
             Helper::register($name, $function);
         }
     }

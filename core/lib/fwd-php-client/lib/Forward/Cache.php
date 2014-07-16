@@ -45,11 +45,9 @@ namespace Forward
          */
         function __construct($client_id, $options)
         {
-            if (is_string($options))
-            {
+            if (is_string($options)) {
                 $options = array('path' => $options);
             }
-
             $this->params = array(
                 'client_id' => $client_id,
                 'path' => $options['path'],
@@ -68,21 +66,18 @@ namespace Forward
         {
             $cache_key = $this->get_key($url, $data);
 
-            if ($json = $this->get_file($cache_key, 'result'))
-            {
+            if ($json = $this->get_file($cache_key, 'result')) {
                 $result = json_decode($json, true);
 
                 // Ensure cache_key exists in index
                 $this->get_index();
 
-                if ($this->indexes[$result['$collection']][$cache_key])
-                {
+                if ($this->indexes[$result['$collection']][$cache_key]) {
                     return $result;
                 }
 
                 // Not found in proper index, then clear?
-                foreach ($this->result_collections($result) as $collection)
-                {
+                foreach ($this->result_collections($result) as $collection) {
                     $this->clear_indexes(array("{$collection}" => $cache_key));
                 }
             }
@@ -111,8 +106,7 @@ namespace Forward
             $cache_path = rtrim($this->params['path'], '/')
                 .'/client'.'.'.$this->params['client_id'];
 
-            foreach (func_get_args() as $arg)
-            {
+            foreach (func_get_args() as $arg) {
                 $cache_path .= '.'.$arg;
             }
 
@@ -139,11 +133,9 @@ namespace Forward
          */
         public function get_versions()
         {
-            if (!$this->versions)
-            {
+            if (!$this->versions) {
                 $this->versions = array();
-                if ($json = $this->get_file('versions'))
-                {
+                if ($json = $this->get_file('versions')) {
                     $this->versions = json_decode($json, true);
                 }
             }
@@ -158,11 +150,9 @@ namespace Forward
          */
         public function get_index()
         {
-            if (!$this->indexes)
-            {
+            if (!$this->indexes) {
                 $this->indexes = array();
-                if ($json = $this->get_file('index'))
-                {
+                if ($json = $this->get_file('index')) {
                     $this->indexes = json_decode($json, true);
                 }
             }
@@ -179,8 +169,7 @@ namespace Forward
          */
         public function put($url, $data, $result)
         {
-            if (!array_key_exists('$data', $result))
-            {
+            if (!array_key_exists('$data', $result)) {
                 $result['$data'] = null; // Allows for null response
             }
 
@@ -194,18 +183,14 @@ namespace Forward
 
             $cache_key = $this->get_key($url, $data);
             $cache_file_path = $this->get_path($cache_key, 'result');
-            if ($size = $this->write_file($cache_file_path, $cache_content))
-            {
-                foreach ($this->result_collections($result) as $collection)
-                {
+            if ($size = $this->write_file($cache_file_path, $cache_content)) {
+                foreach ($this->result_collections($result) as $collection) {
                     // Collection may not be cacheable
-                    if (!$cached[$collection] && !$this->versions[$collection])
-                    {
+                    if (!$cached[$collection] && !$this->versions[$collection]) {
                         continue;
                     }
                     $this->put_index($collection, $cache_key, $size);
-                    if ($version = $cached[$collection])
-                    {
+                    if ($version = $cached[$collection]) {
                         $this->put_version($collection, $version);
                     }
                 }
@@ -226,8 +211,7 @@ namespace Forward
             $this->get_index();
 
             // Limit size of index per client/collection
-            if (count($this->indexes[$collection]) >= $this->params['index_limit'])
-            {
+            if (count($this->indexes[$collection]) >= $this->params['index_limit']) {
                 $this->truncate_index($collection);
             }
 
@@ -262,8 +246,7 @@ namespace Forward
          */
         public function put_version($collection, $version)
         {
-            if ($version)
-            {
+            if ($version) {
                 $this->get_versions();
                 $this->versions[$collection] = $version;
                 $version_path = $this->get_path('versions');
@@ -285,21 +268,16 @@ namespace Forward
             $this->get_versions();
 
             $cached = $result['$cached'];
-            foreach ((array)$cached as $collection => $ver)
-            {
-                if ($ver != $this->versions[$collection])
-                {
+            foreach ((array)$cached as $collection => $ver) {
+                if ($ver != $this->versions[$collection]) {
                     $this->put_version($collection, $ver);
                     $invalid[$collection] = true;
 
                     // Hack to make admin.settings affect other api.settings
                     // TODO: figure out how to do this on the server side
-                    if ($collection === 'admin.settings')
-                    {
-                        foreach ((array)$this->versions as $vcoll => $vv)
-                        {
-                            if (preg_match('/\.settings$/', $vcoll))
-                            {
+                    if ($collection === 'admin.settings') {
+                        foreach ((array)$this->versions as $vcoll => $vv) {
+                            if (preg_match('/\.settings$/', $vcoll)) {
                                 $invalid[$vcoll] = true;
                             }
                         }
@@ -318,21 +296,17 @@ namespace Forward
         public function clear_indexes($invalid)
         {
             $this->get_index();
-            foreach ((array)$invalid as $collection => $key)
-            {
+            foreach ((array)$invalid as $collection => $key) {
                 // Clear all indexes per collection
-                if ($key === true)
-                {
-                    foreach ((array)$this->indexes[$collection] as $cache_key => $size)
-                    {
+                if ($key === true) {
+                    foreach ((array)$this->indexes[$collection] as $cache_key => $size) {
                         $file_path = $this->get_path($cache_key, 'result');
                         @unlink($file_path);
                     }
                     unset($this->indexes[$collection]);
                 }
                 // Clear a single index element by key
-                else if ($key)
-                {
+                else if ($key) {
                     $file_path = $this->get_path($key, 'result');
                     @unlink($file_path);
                     unset($this->indexes[$collection][$key]);
@@ -351,11 +325,9 @@ namespace Forward
         public function write_file($file_path, $content)
         {
             $temp = tempnam($this->params['path'], 'temp');
-            if (!($f = @fopen($temp, 'wb')))
-            { 
+            if (!($f = @fopen($temp, 'wb'))) { 
                 $temp = $this->params['path'].'/'.uniqid('temp'); 
-                if (!($f = @fopen($temp, 'wb')))
-                { 
+                if (!($f = @fopen($temp, 'wb'))) { 
                     throw new WriteException('Unable to write temporary file '.$temp);
                 }
             }
@@ -363,8 +335,7 @@ namespace Forward
             $size = fwrite($f, json_encode($content)); 
             fclose($f); 
 
-            if (!rename($temp, $file_path))
-            { 
+            if (!rename($temp, $file_path)) { 
                 unlink($file_path); 
                 rename($temp, $file_path); 
             } 
@@ -385,10 +356,8 @@ namespace Forward
             // Combine $collection and $expanded headers
             $collections = array($result['$collection']);
 
-            if (is_array($result['$expanded']))
-            {
-                foreach ($result['$expanded'] as $expanded_collection)
-                {
+            if (is_array($result['$expanded'])) {
+                foreach ($result['$expanded'] as $expanded_collection) {
                     $collections[] = $expanded_collection;
                 }
             }

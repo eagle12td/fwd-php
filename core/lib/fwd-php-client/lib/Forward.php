@@ -11,4 +11,3 @@ require_once(dirname(__FILE__) . '/Forward/Connection.php');
 require_once(dirname(__FILE__) . '/Forward/Resource.php');
 require_once(dirname(__FILE__) . '/Forward/Collection.php');
 require_once(dirname(__FILE__) . '/Forward/Record.php');
-

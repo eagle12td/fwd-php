@@ -63,14 +63,12 @@ class Request
         // Route the template
         $request = Template::route($request);
 
-        if (!is_dir($request['template_path']))
-        {
+        if (!is_dir($request['template_path'])) {
             throw new \Exception("Template not found at {$request['template_path']}", 404);
         }
 
         // Handle request redirects
-        if ($request['redirect'])
-        {
+        if ($request['redirect']) {
             self::redirect($request['redirect']);
         }
 
@@ -80,8 +78,7 @@ class Request
         // Route the view
         $request = View::route($request);
 
-        if (!is_file($request['view_path']))
-        {
+        if (!is_file($request['view_path'])) {
             $request = Event::trigger('request', 'notfound', $request);
             throw new \Exception("View not found at {$request['view_path']}", 404);
         }
@@ -93,7 +90,6 @@ class Request
 
         $request = Event::trigger('request', 'render', $request);
         $view_result = View::render($request);
-
         $view_result = Event::trigger('request', 'complete', $view_result);
 
         return ($return ? $view_result : print $view_result);
@@ -108,35 +104,28 @@ class Request
      */
     public static function route($request, $routes = null)
     {
-        if (empty($routes))
-        {
+        if (empty($routes)) {
             return $request;
         }
 
-        foreach ((array)$routes as $key => $route)
-        {
+        foreach ((array)$routes as $key => $route) {
             $route = self::route_format($key, $route);
 
-            foreach ((array)$route['match'] as $match_key => $match_value)
-            {
-                if (!$request[$match_key])
-                {
+            foreach ((array)$route['match'] as $match_key => $match_value) {
+                if (!$request[$match_key]) {
                     continue;
                 }
-                if (!self::route_match($match_value, $request[$match_key]))
-                {
+                if (!self::route_match($match_value, $request[$match_key])) {
                     continue(2);
                 }
             }
 
             // Merge route values with request
-            if (is_array($route['request']))
-            {
+            if (is_array($route['request'])) {
                 $request = array_merge($request, $route['request']);
             }
 
-            if ($request['redirect'] || $request['break'])
-            {
+            if ($request['redirect'] || $request['break']) {
                 break;
             }
         }
@@ -152,20 +141,16 @@ class Request
      */
     private static function route_format($key, $route)
     {
-        if (is_string($key) && is_string($route))
-        {
+        if (is_string($key) && is_string($route)) {
             $route = array(
                 'match' => array('uri' => $key),
                 'request' => array('path' => $route)
             );
-        }
-        else if (is_string($key) && is_array($route) && !$route['match'])
-        {
+        } else if (is_string($key) && is_array($route) && !$route['match']) {
             $route['match'] = array('uri' => $key);
         }
 
-        if ($route['match'] && !is_array($route['match']))
-        {
+        if ($route['match'] && !is_array($route['match'])) {
             $route['match'] = array('uri' => $route['match']);
         }
 
@@ -185,29 +170,21 @@ class Request
         $expr = preg_replace('/\.([^\?\+\*])/', '\.\\1', $expr);
         $expr = str_replace('/', '\/', str_replace('\/', '/', $expr));
 
-        if ($expr)
-        {
+        if ($expr) {
             $first = $expr[0];
             $first2 = substr($expr, 0, 2);
             $last = substr($expr, -1, 1);
             $last2 = substr($expr, -2, 2);
 
-            if ($first !== "^" && $last !== "$")
-            {
-                if ($first === '*')
-                {
+            if ($first !== "^" && $last !== "$") {
+                if ($first === '*') {
                     $expr = "[^\\.]{$expr}";
                 }
-                if ($first !== "^" && $first2 === "\/" && strlen($expr) > 2)
-                {
+                if ($first !== "^" && $first2 === "\/" && strlen($expr) > 2) {
                     $expr = "^{$expr}";
-                }
-                else if ($last !== "$" && $last2 === "\/")
-                {
+                } else if ($last !== "$" && $last2 === "\/") {
                     $expr = "{$expr}$";
-                }
-                else
-                {
+                } else {
                     $expr = "^{$expr}$";
                 }
             }
@@ -220,10 +197,8 @@ class Request
             };
             set_error_handler($handle_syntax_error);
 
-            try
-            {
-                if (preg_match("/{$expr}/", $request_val))
-                {
+            try {
+                if (preg_match("/{$expr}/", $request_val)) {
                     return true;
                 }
             }
@@ -247,8 +222,7 @@ class Request
 
         $url = Event::trigger('request', 'redirect', $url);
         
-        if (self::$vars['ajax'])
-        {
+        if (self::$vars['ajax']) {
             $url .= (strpos($url, '?') === false ? '?__ajax' : '&__ajax');
         }
 
@@ -299,8 +273,7 @@ class Request
         $uri_path = rtrim(Config::path('uri'), '/').'/';
 
         // Remove base uri from request path
-        if (strpos($request['path'], $uri_path) === 0)
-        {
+        if (strpos($request['path'], $uri_path) === 0) {
             $request['path'] = preg_replace('#^'.$uri_path.'#', '', $request['path']);
             $request['path'] = '/'.ltrim($request['path'], '/');
         }
@@ -333,19 +306,14 @@ class Request
     {
         Event::bind("request.{$method}", function() use($method, $match, $handler)
         {
-            if (is_callable($match))
-            {
+            if (is_callable($match)) {
                 $handler = $match;
                 $result = call_user_func_array($handler, func_get_args());
-                if (!is_null($result))
-                {
+                if (!is_null($result)) {
                     return $result;
                 }
-            }
-            else if (is_array($match))
-            {
-                if (!is_callable($handler))
-                {
+            } else if (is_array($match)) {
+                if (!is_callable($handler)) {
                     throw new \Exception('Bind handler is not a function');
                 }
 
@@ -354,11 +322,9 @@ class Request
                     'match' => $match,
                     'request' => array('matched' => true)
                 ));
-                if ($request['matched'])
-                {
+                if ($request['matched']) {
                     $result = call_user_func_array($handler, func_get_args());
-                    if (!is_null($result))
-                    {
+                    if (!is_null($result)) {
                         return $result;
                     }
                 }
@@ -413,8 +379,7 @@ class Request
         $params = Event::trigger('request', 'remote', $params);
         $params = Event::trigger('client', 'request', $params);
 
-        if (is_array($result))
-        {
+        if (is_array($result)) {
             $method = $result['method'] ?: $method;
             $url = $result['url'] ?: $url;
             $data = $result['data'] ?: $data;
@@ -422,9 +387,7 @@ class Request
 
         try {
             $response = self::client_adapter()->{$method}($url, $data);
-        }
-        catch (ServerException $e)
-        {
+        } catch (ServerException $e) {
             $message = $e->getMessage()." (".$method." ".$url." ".json_encode($data ?: new \stdClass).")";
             throw new ServerException($message);
         }
@@ -461,12 +424,10 @@ class Request
 
         $client = self::$vars['client'] ?: $config['client'] ?: array();
 
-        if (is_string($client))
-        {
+        if (is_string($client)) {
             $client_config = $config['clients'][$client];
             $client = array();
-            foreach ($client_config as $key => $val)
-            {
+            foreach ($client_config as $key => $val) {
                 $client[$key] = $val;
             }
         }
@@ -486,18 +447,14 @@ class Request
             'cache' => $client['cache'] !== null ? $client['cache'] : $config['client_cache'],
             'session' => $client['session'] !== null ? $client['session'] : $config['client_session']
         );
-        if ($client_config['cache'] === null)
-        {
+        if ($client_config['cache'] === null) {
             $client_config['cache'] = true; // Default cache enabled
         }
-        if ($client_config['cache'])
-        {
-            if (is_bool($client_config['cache']))
-            {
+        if ($client_config['cache']) {
+            if (is_bool($client_config['cache'])) {
                 $client_config['cache'] = array();
             }
-            if (!$client_config['cache']['path'])
-            {
+            if (!$client_config['cache']['path']) {
                 $client_config['cache']['path'] = Config::path('core', '/cache');
             }
         }
@@ -512,14 +469,10 @@ class Request
      */
     public static function client_adapter()
     {
-        if (!self::$client)
-        {
+        if (!self::$client) {
             require_once(Config::path('core', 'lib/fwd-php-client/lib/Forward.php'));
-
             $config = self::client_config();
-
             self::$client = new \Forward\Client($config['id'], $config['key'], $config);
-
             self::$client = Event::trigger('request', 'client', self::$client);
         }
 
@@ -534,10 +487,8 @@ class Request
     public static function plugins()
     {
         Plugin::load(
-
             // path to global plugins
             Config::path('plugins'),
-
             // global plugin config
             Config::get('plugins')
         );
@@ -590,22 +541,17 @@ class Request
         );
         $msg_type = $severity_map[$severity] ?: $severity;
 
-        if (!in_array($msg_type, array('notices', 'warnings', 'errors')))
-        {
+        if (!in_array($msg_type, array('notices', 'warnings', 'errors'))) {
             return false;
         }
 
-        if (is_string($message))
-        {
+        if (is_string($message)) {
             self::$vars[$msg_type] = array_merge((array)self::$vars[$msg_type], array($message));
-        }
-        elseif (is_array($message))
-        {
+        } elseif (is_array($message)) {
             self::$vars[$msg_type] = array_merge((array)self::$vars[$msg_type], $message);
         }
 
-        if ($redirect)
-        {
+        if ($redirect) {
             self::redirect($redirect);
         }
     }
@@ -618,20 +564,16 @@ class Request
     public static function persist()
     {
         $messages = array();
-        if (self::$vars['errors'])
-        {
+        if (self::$vars['errors']) {
             $messages['errors'] = self::$vars['errors'];
         }
-        if (self::$vars['warnings'])
-        {
+        if (self::$vars['warnings']) {
             $messages['warnings'] = self::$vars['warnings'];
         }
-        if (self::$vars['notices'])
-        {
+        if (self::$vars['notices']) {
             $messages['notices'] = self::$vars['notices'];
         }
-        if (!empty($messages))
-        {
+        if (!empty($messages)) {
             $session = self::session();
             $session['__messages'] = $messages;
         }

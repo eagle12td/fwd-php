@@ -34,36 +34,29 @@ class Event
      */
     public static function bind($target, $event, $callback = null, $level = 1)
     {
-        if (is_null($callback))
-        {
+        if (is_null($callback)) {
             $callback = $event;
             $event = $target;
             $target = 0;
         }
 
-        if (!is_callable($callback))
-        {
+        if (!is_callable($callback)) {
             return false;
         }
 
         $events = self::parse_bind_events($target, $event);
-        foreach ($events as $event)
-        {
+        foreach ($events as $event) {
             $key = $event['key'];
             $pre = $event['pre'];
             $name = $event['name'];
 
             // Make sure it's only bound once.
-            if (!is_array(static::$events[$key][$pre][$name][$level]))
-            {
+            if (!is_array(static::$events[$key][$pre][$name][$level])) {
                 static::$events[$key][$pre][$name][$level] = array();
             }
-            foreach (static::$events[$key][$pre][$name] as $event_level)
-            {
-                foreach ($event_level as $ex_callback)
-                {
-                    if ($ex_callback === $callback)
-                    {
+            foreach (static::$events[$key][$pre][$name] as $event_level) {
+                foreach ($event_level as $ex_callback) {
+                    if ($ex_callback === $callback) {
                         return false;
                     }
                 }
@@ -89,22 +82,16 @@ class Event
     public static function parse_bind_events($target, $event)
     {
         // Event arg optionally combined with target
-        if (is_null($event))
-        {
+        if (is_null($event)) {
             $event = $target;
             $target = 0;
-        }
-        else
-        {
+        } else {
             // Convert object to class string
-            if (is_object($target))
-            {
+            if (is_object($target)) {
                 $target = get_class($target);
             }
-
             // Target is case insensitive
-            if (is_string($target))
-            {
+            if (is_string($target)) {
                 $target = strtolower($target);
             }
         }
@@ -115,31 +102,24 @@ class Event
             ? $event
             : explode(',', $event);
             
-        foreach ($event_parts as $event)
-        {
+        foreach ($event_parts as $event) {
             $event = strtolower($event);
             $event = str_replace(' ', '', $event);
 
             // Target as part of event string?
-            if ($target === 0)
-            {
+            if ($target === 0) {
                 // Target specified before '.'
                 $target_parts = explode('.', $event);
 
                 // Combine remaining '.' into event string
-                if ($target_parts[1])
-                {
+                if ($target_parts[1]) {
                     $key = array_shift($target_parts);
                     $event = implode('.', $target_parts);
-                }
-                else
-                {
+                } else {
                     $key = $target;
                     $event = $target_parts[0];
                 }
-            }
-            else
-            {
+            } else {
                 // Target as event key
                 $key = $target;
             }
@@ -169,7 +149,6 @@ class Event
     public static function stop($result = null)
     {
         self::$stop = true;
-        
         return $result;
     }
 
@@ -185,20 +164,16 @@ class Event
         $args = array_slice(func_get_args(), 2);
 
         $events = self::parse_bind_events($target, $event);
-        foreach ($events as $event)
-        {
+        foreach ($events as $event) {
             $key = $event['key'];
             $pre = $event['pre'];
             $name = $event['name'];
             $result = count($args) ? $args[0] : 0;
 
             // If pre is 'on', trigger 'before' binds first
-            if ($pre == 'on')
-            {
+            if ($pre == 'on') {
                 $pre_set = array('before', 'on');
-            }
-            else
-            {
+            } else {
                 $pre_set = array($pre);
             }
 
@@ -206,34 +181,23 @@ class Event
             self::$stop = false;
 
             // Trigger callback[s]
-            foreach ($pre_set as $pre)
-            {
-                foreach ((array)self::$events[$key][$pre][$name] as $event_level)
-                {
-                    foreach ((array)$event_level as $callback)
-                    {
+            foreach ($pre_set as $pre) {
+                foreach ((array)self::$events[$key][$pre][$name] as $event_level) {
+                    foreach ((array)$event_level as $callback) {
                         // TODO: use reflection to detect callback arg count
                         $return = call_user_func_array($callback, $args);
-
                         // Stop propagation?
-                        if ($return === false)
-                        {
+                        if ($return === false) {
                             return false;
                         }
-
                         // Chain result
-                        if (count($args))
-                        {
+                        if (count($args)) {
                             $result = isset($return) ? ($args[0] = $return) : $args[0];
-                        }
-                        else
-                        {
+                        } else {
                             $result++;
                         }
-
                         // Stop chain?
-                        if (self::$stop)
-                        {
+                        if (self::$stop) {
                             self::$stop = false;
                             return $return;
                         }
@@ -241,8 +205,7 @@ class Event
                 }
             }
         }
-        if (empty($events))
-        {
+        if (empty($events)) {
             $result = count($args) ? $args[0] : 0;
         }
 

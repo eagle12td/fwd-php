@@ -134,16 +134,11 @@ namespace Forward
          */
         public function params($merge = null)
         {
-            if (is_array($merge))
-            {
+            if (is_array($merge)) {
                 $this->params = array_merge($this->params, $merge);
-            }
-            else if (is_string($key = $merge))
-            {
+            } else if (is_string($key = $merge)) {
                 return $this->params[$key];
-            }
-            else
-            {
+            } else {
                 return $this->params;
             }
         }
@@ -162,26 +157,21 @@ namespace Forward
             $data = array('$data' => $data);
 
             try {
-                if (!$this->server->connected)
-                {
-                    if ($this->params['proxy'])
-                    {
+                if (!$this->server->connected) {
+                    if ($this->params['proxy']) {
                         $data = $this->request_proxy_data($data);
                     }
                     $this->server->connect();
                 }
                 $result = $this->server->request($method, array($url, $data));
-            }
-            catch (\Exception $e)
-            {
+            } catch (\Exception $e) {
                 $this->request_rescue($e, array(
                     'method' => $method,
                     'url' => $url
                 ));
             }
 
-            if ($result['$auth'])
-            {
+            if ($result['$auth']) {
                 $this->authed = true;
                 $result = $this->auth($result['$auth']);
             }
@@ -254,15 +244,13 @@ namespace Forward
                 'host' => $this->params['host'],
                 'port' => $this->params['port']
             );
-            if (is_array($this->params['proxy']))
-            {
+            if (is_array($this->params['proxy'])) {
                 // Set connection to proxy host/port + cleartext
                 $this->server->options['clear'] = true;
                 $this->server->host = $this->params['proxy']['host'] ?: $this->params['host'];
                 $this->server->port = $this->params['proxy']['clear_port'] ?: $this->params['clear_port'];
             }
-            if ($this->params['cache'] && !$this->cache)
-            {
+            if ($this->params['cache'] && !$this->cache) {
                 $client_id = $data['$proxy']['client'];
                 $this->cache = new \Forward\Cache($client_id, $this->params['cache']);
                 $data['$cached'] = $this->cache->get_versions();
@@ -282,13 +270,10 @@ namespace Forward
          */
         public function response($method, $url, $data, $result)
         {
-            if ($this->cache)
-            {
+            if ($this->cache) {
                 // First clear relevant cache then put
                 $this->cache->clear($result);
-
-                if ($method === 'get')
-                {
+                if ($method === 'get') {
                     $this->cache->put($url, $data, $result);
                 }
             }
@@ -303,13 +288,10 @@ namespace Forward
          */
         public function response_data($result)
         {
-            if ($result['$data'] && is_array($result['$data']))
-            {
-                if (!$result['$url'])
-                {
+            if ($result['$data'] && is_array($result['$data'])) {
+                if (!$result['$url']) {
                     // TODO: use a header to determine url of a new record
-                    if ($method === 'post')
-                    {
+                    if ($method === 'post') {
                         $url = rtrim($url, '/').'/'.$result['$data']['id'];
                     }
                     $result['$url'] = $url;
@@ -331,12 +313,9 @@ namespace Forward
          */
         public function get($url, $data = null)
         {
-            if ($this->cache)
-            {
+            if ($this->cache) {
                 $result = $this->cache->get($url, array('$data' => $data));
-
-                if (array_key_exists('$data', $result))
-                {
+                if (array_key_exists('$data', $result)) {
                     return $this->response_data($result);
                 }
             }
@@ -353,8 +332,7 @@ namespace Forward
          */
         public function put($url, $data = '$undefined')
         {
-            if ($data === '$undefined')
-            {
+            if ($data === '$undefined') {
                 $data = ($url instanceof Resource)
                     ? $url->data()
                     : null;
@@ -411,28 +389,22 @@ namespace Forward
                 'client' => $client_id,
                 'key' => $auth_key
             );
-            if ($this->params['version'])
-            {
+            if ($this->params['version']) {
                 $creds['$v'] = $this->params['version'];
             }
-            if ($this->params['api'])
-            {
+            if ($this->params['api']) {
                 $creds['$api'] = $this->params['api'];
             }
-            if ($this->params['session'])
-            {
+            if ($this->params['session']) {
                 $creds['$session'] = $this->params['session'];
             }
-            if ($this->params['route'])
-            {
+            if ($this->params['route']) {
                 $creds['$route'] = $this->params['route'];
             }
-            if ($ip_address = $_SERVER['REMOTE_ADDR'])
-            {
+            if ($ip_address = $_SERVER['REMOTE_ADDR']) {
                 $creds['$ip'] = $ip_address;
             }
-            if ($this->params['cache'] && !$this->cache)
-            {
+            if ($this->params['cache'] && !$this->cache) {
                 $client_id = $creds['$route']['client'] ?: $client_id;
                 $this->cache = new \Forward\Cache($client_id, $this->params['cache']);
                 $creds['$cached'] = $this->cache->get_versions();
@@ -440,9 +412,7 @@ namespace Forward
             
             try {
                 return $this->server->request('auth', array($creds));
-            }
-            catch (\Exception $e)
-            {
+            } catch (\Exception $e) {
                 $this->request_rescue($e, array(
                     'method' => 'auth',
                     'data' => $creds

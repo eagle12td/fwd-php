@@ -54,14 +54,12 @@ namespace Forward
         {
             $url = $result['$url'];
             $parent_url = $url;
-            if (false !== ($pos = strpos($url, '?')))
-            {
+            if (false !== ($pos = strpos($url, '?'))) {
                 $url = substr(0, $pos);
             }
 
             $url = "/".trim($url, "/");
-            foreach ((array)$result['$data'] as $key => $record)
-            {
+            foreach ((array)$result['$data'] as $key => $record) {
                 $record_url = $url."/".$record['id'];
                 self::$links[$record_url] = &self::$links[$parent_url];
                 $result['$data'][$key] = new Record(array(
@@ -81,25 +79,18 @@ namespace Forward
          */
         function offsetGet($index)
         {
-            if (isset($this->{$index}))
-            {
+            if (isset($this->{$index})) {
                 return $this->{$index};
-            }
-            else
-            {
+            } else {
                 $records = $this->records();
-                if ($index === "results")
-                {
+                if ($index === "results") {
                     return $records;
                 }
-                if ($record =& $records[$index])
-                {
+                if ($record =& $records[$index]) {
                     return $record;
                 }
-                foreach ((array)$records as $key => $record)
-                {
-                    if ($record['id'] === $index)
-                    {
+                foreach ((array)$records as $key => $record) {
+                    if ($record['id'] === $index) {
                         $record =& $records[$key];
                         return $record;
                     }
@@ -130,54 +121,39 @@ namespace Forward
             $dump = array();
             $dump['count'] = $this->count;
             $dump['results'] = array();
-            foreach ((array)$this->records() as $key => $record)
-            {
-                if ($record instanceof Resource)
-                {
+            foreach ((array)$this->records() as $key => $record) {
+                if ($record instanceof Resource) {
                     $dump['results'][$key] = $record->data();
-                    foreach ($record->links() as $field => $link)
-                    {
-                        if ($depth < 1)
-                        {
+                    foreach ($record->links() as $field => $link) {
+                        if ($depth < 1) {
                             try {
                                 $link_record = $record[$field];
-                            }
-                            catch (ServerException $e)
-                            {
+                            } catch (ServerException $e) {
                                 $link_record = array('$error' => $e->getMessage());
                             }
 
-                            if ($link_record instanceof Resource)
-                            {
+                            if ($link_record instanceof Resource) {
                                 $dump['results'][$key][$field] = $link_record->dump(true, false, $depth+1);
-                            }
-                            else
-                            {
+                            } else {
                                 $dump['results'][$key][$field] = $link_record;
                             }
                         }
                     }
                 }
             }
-            if ($dump['results'] && $links = $this->links())
-            {
+            if ($dump['results'] && $links = $this->links()) {
                 $dump['$links'] = $this->dump_links($links);
             }
-            if ($dump['count'] > 0)
-            {
+            if ($dump['count'] > 0) {
                 $dump['page'] = $this->page;
             }
-            if ($this->pages)
-            {
+            if ($this->pages) {
                 $dump['pages'] = $this->pages;
             }
             
-            if ($print)
-            {
+            if ($print) {
                 return print_r($dump, $return);
-            }
-            else
-            {
+            } else {
                 return $dump;
             }
         }

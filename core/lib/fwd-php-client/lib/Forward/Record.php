@@ -27,19 +27,15 @@ namespace Forward
          */
         function offsetGet($field)
         {
-            if (is_null($field))
-            {
+            if (is_null($field)) {
                 return;
             }
 
             $link_result = $this->offset_get_link($field);
 
-            if ($link_result !== null)
-            {
+            if ($link_result !== null) {
                 return $link_result;
-            }
-            else
-            {
+            } else {
                 return $this->offset_get_result($field);
             }
         }
@@ -52,43 +48,30 @@ namespace Forward
          **/
         function offset_get_link($field)
         {
-            if ($header_links = $this->links())
-            {
-                if ($field === '$links')
-                {
+            if ($header_links = $this->links()) {
+                if ($field === '$links') {
                     $links = array();
-                    foreach ($header_links['*'] ?: $header_links as $key => $link)
-                    {
-                        if ($link['url'])
-                        {
+                    foreach ($header_links['*'] ?: $header_links as $key => $link) {
+                        if ($link['url']) {
                             $links[$key] = $this->link_url($key);
                         }
                     }
                     return $links;
                 }
-
-                if (isset($header_links[$field]['url']))
-                {
-                    if (!array_key_exists($field, (array)$this->links))
-                    {
+                if (isset($header_links[$field]['url'])) {
+                    if (!array_key_exists($field, (array)$this->links)) {
                         $data = $this->data();
-                        if (array_key_exists($field, (array)$data))
-                        {
-                            if (is_array($data[$field]))
-                            {
+                        if (array_key_exists($field, (array)$data)) {
+                            if (is_array($data[$field])) {
                                 $this->links[$field] = Resource::instance(array(
                                     '$url' => $this->link_url($field),
                                     '$data' => $data[$field],
                                     '$links' => $header_links[$field]['links']
                                 ));
-                            }
-                            else
-                            {
+                            } else {
                                 $this->links[$field] = $data[$field];
                             }
-                        }
-                        else
-                        {
+                        } else {
                             // Avoid storing too much memory from links
                             $mem_start = memory_get_usage();
                             $link_url = $this->link_url($field);
@@ -96,19 +79,14 @@ namespace Forward
                             $mem_total = memory_get_usage() - $mem_start;
 
                             // Max one megabyte
-                            if ($mem_total < 1048576)
-                            {
+                            if ($mem_total < 1048576) {
                                 $this->links[$field] = $result;
-                            }
-                            else
-                            {
+                            } else {
                                 return $result;
                             }
                         }
                     }
-
-                    if (array_key_exists($field, (array)$this->links))
-                    {
+                    if (array_key_exists($field, (array)$this->links)) {
                         return $this->links[$field];
                     }
                 }
@@ -130,8 +108,7 @@ namespace Forward
 
             $data_links = $header_links['*'] ?: $header_links[$field]['links'];
 
-            if (is_array($data[$field]) || (!$data[$field] && $data_links))
-            {
+            if (is_array($data[$field]) || (!$data[$field] && $data_links)) {
                 $data_record = new Record(array(
                     '$url' => $this->link_url($field),
                     '$data' => $data[$field],
@@ -139,9 +116,7 @@ namespace Forward
                 ));
                 $this->offsetSet($field, $data_record);
                 return $data_record;
-            }
-            else
-            {
+            } else {
                 return $data[$field];
             }
 
@@ -166,17 +141,13 @@ namespace Forward
          */
         function link_url($field, $id = null)
         {
-            if ($qpos = strpos($this->url, '?'))
-            {
+            if ($qpos = strpos($this->url, '?')) {
                 $url = substr($this->url, 0, $qpos);
-            }
-            else
-            {
+            } else {
                 $url = $this->url;
             }
 
-            if ($id)
-            {
+            if ($id) {
                 $url = preg_replace('/[^\/]+$/', $id, rtrim($url, "/"));
             }
 
@@ -194,31 +165,22 @@ namespace Forward
             $dump = $this->data();
             $links = $this->links();
 
-            foreach ($links as $key => $link)
-            {
-                if ($depth < 1)
-                {
+            foreach ($links as $key => $link) {
+                if ($depth < 1) {
                     try {
                         $related = $this->{$key};
-                    }
-                    catch (ServerException $e)
-                    {
+                    } catch (ServerException $e) {
                         $related = array('$error' => $e->getMessage());
                     }
 
-                    if ($related instanceof Resource)
-                    {
+                    if ($related instanceof Resource) {
                         $dump[$key] = $related->dump(true, false, $depth+1);
-                    }
-                    else
-                    {
+                    } else {
                         $dump[$key] = $related;
                     }
                 }
             }
-
-            if ($links)
-            {
+            if ($links) {
                 $dump['$links'] = $this->dump_links($links);
             }
 

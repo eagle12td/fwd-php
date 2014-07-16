@@ -34,22 +34,16 @@ namespace Forward
          */
         function __construct($result, $client = null)
         {
-            if ($result['$url'])
-            {
+            if ($result['$url']) {
                 $this->url = $result['$url'];
-
-                if ($result['$links'])
-                {
+                if ($result['$links']) {
                     self::$links[$this->url] = $result['$links'];
                 }
             }
-            if ($client)
-            {
+            if ($client) {
                 self::$client = $client;
             }
-
-            if (is_array($result['$data']))
-            {
+            if (is_array($result['$data'])) {
                 ksort($result['$data']);
                 parent::__construct($result['$data']);
             }
@@ -64,8 +58,7 @@ namespace Forward
         {
             if (is_array($result['$data'])
                 && isset($result['$data']['count'])
-                && isset($result['$data']['results']))
-            {
+                && isset($result['$data']['results'])) {
                 return new Collection($result, $client);
             }
             
@@ -102,23 +95,19 @@ namespace Forward
         {
             $data = $this->getArrayCopy();
 
-            if ($raw)
-            {
-                foreach ($data as $key => $val)
-                {
-                    if ($val instanceof Resource)
-                    {
+            if ($raw) {
+                foreach ($data as $key => $val) {
+                    if ($val instanceof Resource) {
                         $data[$key] = $val->data($raw);
                     }
                 }
-                foreach ((array)$this->links as $key => $val)
-                {
-                    if ($val instanceof Resource)
-                    {
+                foreach ((array)$this->links as $key => $val) {
+                    if ($val instanceof Resource) {
                         $data[$key] = $val->data($raw);
                     }
                 }
             }
+
             return $data;
         }
 
@@ -159,23 +148,17 @@ namespace Forward
          */
         function dump_links($links = null)
         {
-            if (is_null($links))
-            {
+            if (is_null($links)) {
                 $links = $this->links();
             }
             $dump = array();
-            foreach ((array)$links as $key => $link)
-            {
-                if ($link['url'])
-                {
+            foreach ((array)$links as $key => $link) {
+                if ($link['url']) {
                     $dump[$key] = $link['url'];
                 }
-                if ($key === '*')
-                {
+                if ($key === '*') {
                     $dump = array_merge($dump, $this->dump_links($link));
-                }
-                else if ($link['links'])
-                {
+                } else if ($link['links']) {
                     $dump[$key] = $this->dump_links($link['links']);
                 }
             }

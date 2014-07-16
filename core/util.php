@@ -48,8 +48,7 @@ function autoload($class_name)
     $class_name = ltrim($class_name, '\\');
     $class_path = "";
 
-    if ($last_ns_pos = strripos($class_name, '\\'))
-    {
+    if ($last_ns_pos = strripos($class_name, '\\')) {
         $namespace = substr($class_name, 0, $last_ns_pos);
         $class_name = substr($class_name, $last_ns_pos + 1);
         $class_path  = str_replace('\\', DIRECTORY_SEPARATOR, $namespace).DIRECTORY_SEPARATOR;
@@ -59,8 +58,7 @@ function autoload($class_name)
 
     // Require class to exist in core/lib
     $core_class_path = \Forward\Config::path('core', "/lib/{$class_path}");
-    if (is_file($core_class_path))
-    {
+    if (is_file($core_class_path)) {
         include $core_class_path;
     }
 }
@@ -79,36 +77,29 @@ function autoload($class_name)
 function error_handler($code, $message, $file = "", $line = 0, $globals = null, $trace = null, $exception = false)
 {
     // Hide errors if PHP is not set to report them
-    if (!$exception)
-    {
+    if (!$exception) {
         $code = ($code & error_reporting());
-        if (!$code)
-        {
+        if (!$code) {
             return;
         }
     }
 
     error_log("App ".($exception ? 'Exception' : 'Error').": {$message} in {$file} on line {$line} (code: {$code})");
 
-    if ($code == 404)
-    {
+    if ($code == 404) {
         header('HTTP/1.1 404 Page Not Found');
-    }
-    else
-    {
+    } else {
         header('HTTP/1.1 500 Internal Server Error');
     }
 
-    if (!ini_get('display_errors'))
-    {
+    if (!ini_get('display_errors')) {
         exit;
     }
 
     // Otherwise, continue to standard error handling...
     $type = $exception ? 'Exception' : 'Error';
     $type_code = $exception && $code ? ": {$code}" : '';
-    switch ($code)
-    {
+    switch ($code) {
         case E_ERROR:           $type_name = 'Error'; break;
         case E_WARNING:         $type_name = 'Warning'; break;
         case E_PARSE:           $type_name = 'Parse Error'; break;
@@ -127,8 +118,7 @@ function error_handler($code, $message, $file = "", $line = 0, $globals = null, 
     $backtrace = $trace ?: debug_backtrace();
     array_shift($backtrace);
 
-    if ($_SERVER['HTTP_HOST'])
-    {
+    if ($_SERVER['HTTP_HOST']) {
 ?>
     <html>
     <head>
@@ -178,13 +168,10 @@ function error_handler($code, $message, $file = "", $line = 0, $globals = null, 
     </html>
 <?php
     }
-    else
-    {
+    else {
         print("{$type}: {$message}\n\n");
-        if (count($backtrace) > 1)
-        {
-            foreach ($backtrace as $event)
-            {
+        if (count($backtrace) > 1) {
+            foreach ($backtrace as $event) {
                 print("    > {$event['function']} in {$event['file']} on line {$event['line']}\n");
             }
         }
@@ -200,12 +187,9 @@ function error_handler($code, $message, $file = "", $line = 0, $globals = null, 
  */
 function exception_handler ($e)
 {
-    try
-    {
+    try {
         error_handler($e->getCode(), $e->getMessage(), $e->getFile(), $e->getLine(), $GLOBALS, $e->getTrace(), $e);
-    }
-    catch (Exception $e)
-    {
+    } catch (Exception $e) {
         print "Exception thrown by exception handler: '".$e->getMessage()."' on line ".$e->getLine();
     }
 }
@@ -217,8 +201,7 @@ function exception_handler ($e)
  */
 function dump ()
 {
-    foreach (func_get_args() as $var)
-    {
+    foreach (func_get_args() as $var) {
         $val = (($var instanceof ArrayInterface) || ($var instanceof \Forward\Resource))
             ? $var->dump(true)
             : print_r($var, true);
@@ -240,16 +223,11 @@ function merge($set1, $set2)
     // TODO: make this work on any number of sets (func_get_args())
     $merged = $set1;
 
-    if (is_array($set2) || $set2 instanceof ArrayIterator)
-    {
-        foreach ($set2 as $key => &$value)
-        {
-            if ((is_array($value) || $value instanceof ArrayIterator) && (is_array($merged[$key]) || $merged[$key] instanceof ArrayIterator))
-            {
+    if (is_array($set2) || $set2 instanceof ArrayIterator) {
+        foreach ($set2 as $key => &$value) {
+            if ((is_array($value) || $value instanceof ArrayIterator) && (is_array($merged[$key]) || $merged[$key] instanceof ArrayIterator)) {
                 $merged[$key] = merge($merged[$key], $value);
-            }
-            elseif (isset($value) && !(is_array($merged[$key]) || $merged[$key] instanceof ArrayIterator))
-            {
+            } elseif (isset($value) && !(is_array($merged[$key]) || $merged[$key] instanceof ArrayIterator)) {
                 $merged[$key] = $value;
             }
         }
@@ -267,26 +245,17 @@ function merge($set1, $set2)
  */
 function in($val_a, $val_b = null)
 {
-    if (is_scalar($val_a))
-    {
-        if (is_array($val_b))
-        {
+    if (is_scalar($val_a)) {
+        if (is_array($val_b)) {
             return in_array($val_a, $val_b);
-        }
-        else if ($val_a && is_scalar($val_b))
-        {
+        } else if ($val_a && is_scalar($val_b)) {
             return strpos($val_b, $val_a) !== false;
         }
-    }
-    else if (is_array($val_a))
-    {
-        foreach ($val_a as $k => $v)
-        {
-            if (!in($v, $val_b))
-            {
+    } else if (is_array($val_a)) {
+        foreach ($val_a as $k => $v) {
+            if (!in($v, $val_b)) {
                 return false;
             }
-
             return true;
         }
     }
@@ -367,24 +336,18 @@ function words($string)
 function pluralize($string, $if_many = null)
 {
     // Conditional
-    if ($if_many)
-    {
+    if ($if_many) {
         $if_many = (is_array($if_many)) ? count($if_many) : $if_many;
-    }
-    else if (is_numeric($string[0]))
-    {
+    } else if (is_numeric($string[0])) {
         $parts = explode(' ', $string);
         $string = array_pop($parts);
         $if_many = $parts[0];
         $prefix = implode(' ', $parts).' ';
     }
 
-    if (isset($if_many) && $if_many == 1)
-    {
+    if (isset($if_many) && $if_many == 1) {
         $string = singularize($string);
-    }
-    else
-    {
+    } else {
         $plural = array(
             '/(quiz)$/i' => '\1zes',
             '/^(ox)$/i' => '\1en',
@@ -426,26 +389,18 @@ function pluralize($string, $if_many = null)
         );
 
         $lower_string = strtolower($string);
-        foreach ($ignore as $ignore_string)
-        {
-            if (substr($lower_string, (-1 * strlen($ignore_string))) == $ignore_string)
-            {
+        foreach ($ignore as $ignore_string){
+            if (substr($lower_string, (-1 * strlen($ignore_string))) == $ignore_string) {
                 return $prefix.$string;
             }
         }
-
-        foreach ($irregular as $_plural=> $_singular)
-        {
-            if (preg_match('/('.$_plural.')$/i', $string, $arr))
-            {
+        foreach ($irregular as $_plural=> $_singular) {
+            if (preg_match('/('.$_plural.')$/i', $string, $arr)) {
                 return $prefix.preg_replace('/('.$_plural.')$/i', substr($arr[0],0,1).substr($_singular,1), $string);
             }
         }
-
-        foreach ($plural as $rule => $replacement)
-        {
-            if (preg_match($rule, $string))
-            {
+        foreach ($plural as $rule => $replacement) {
+            if (preg_match($rule, $string)) {
                 return $prefix.preg_replace($rule, $replacement, $string);
             }
         }
@@ -461,12 +416,9 @@ function pluralize($string, $if_many = null)
  */
 function singularize($string)
 {
-    if (is_string($string))
-    {
+    if (is_string($string)) {
         $word = $string;
-    }
-    else
-    {
+    } else {
         return false;
     }
     
@@ -519,26 +471,18 @@ function singularize($string)
     );
 
     $lower_word = strtolower($word);
-    foreach ($ignore as $ignore_word)
-    {
-        if (substr($lower_word, (-1 * strlen($ignore_word))) == $ignore_word)
-        {
+    foreach ($ignore as $ignore_word) {
+        if (substr($lower_word, (-1 * strlen($ignore_word))) == $ignore_word) {
             return $word;
         }
     }
-
-    foreach ($irregular as $singular_word => $plural_word)
-    {
-        if (preg_match('/('.$plural_word.')$/i', $word, $arr))
-        {
+    foreach ($irregular as $singular_word => $plural_word) {
+        if (preg_match('/('.$plural_word.')$/i', $word, $arr)) {
             return preg_replace('/('.$plural_word.')$/i', substr($arr[0],0,1).substr($singular_word,1), $word);
         }
     }
-
-    foreach ($singular as $rule => $replacement)
-    {
-        if (preg_match($rule, $word))
-        {
+    foreach ($singular as $rule => $replacement) {
+        if (preg_match($rule, $word)) {
             return preg_replace($rule, $replacement, $word);
         }
     }
@@ -554,18 +498,13 @@ function singularize($string)
  */
 function sortby($array)
 {
-    if ($array instanceof \Forward\Collection)
-    {
+    if ($array instanceof \Forward\Collection) {
         $collection = $array;
         $array = $collection->records();
-    }
-    elseif ($array instanceof \Forward\Record)
-    {
+    } else if ($array instanceof \Forward\Record) {
         $record = $array;
         $array = $record->data();
-    }
-    elseif (!is_array($array))
-    {
+    } else if (!is_array($array)) {
         return false;
     }
 
@@ -576,44 +515,28 @@ function sortby($array)
     {
         static $args;
 
-        if ($b == null)
-        {
+        if ($b == null) {
             $args = $a;
             return;
         }
-
-        foreach ((array)$args as $k)
-        {
-            if ($k[0] == '!')
-            {
+        foreach ((array)$args as $k) {
+            if ($k[0] == '!') {
                 $k = substr($k, 1);
-
-                if ($a[$k] === "" || $a[$k] === null)
-                {
+                if ($a[$k] === "" || $a[$k] === null) {
                     return 0;
-                }
-                else if (is_numeric($b[$k]) && is_numeric($a[$k]))
-                {
+                } else if (is_numeric($b[$k]) && is_numeric($a[$k])) {
                     return $a[$k] < $b[$k];
                 }
-
                 return strnatcmp(@$a[$k], @$b[$k]);
-            }
-            else
-            {
-                if ($b[$k] === "" || $b[$k] === null)
-                {
-                    if ($a[$k] === "" || $a[$k] === null)
-                    {
+            } else {
+                if ($b[$k] === "" || $b[$k] === null) {
+                    if ($a[$k] === "" || $a[$k] === null) {
                         return 0;
                     }
                     return -1;
-                }
-                else if (is_numeric($b[$k]) && is_numeric($a[$k]))
-                {
+                } else if (is_numeric($b[$k]) && is_numeric($a[$k])) {
                     return $a[$k] > $b[$k];
                 }
-
                 return strnatcmp(@$b[$k], @$a[$k]);
             }
         }
@@ -640,37 +563,24 @@ function age($date)
     $time = is_numeric($date) ? (int)$date : strtotime($date);
     $seconds_elapsed = (time() - $time);
 
-    if ($seconds_elapsed < 60)
-    {
+    if ($seconds_elapsed < 60) {
         return 'just now';
-    }
-    else if ($seconds_elapsed >= 60 && $seconds_elapsed < 3600)
-    {
+    } else if ($seconds_elapsed >= 60 && $seconds_elapsed < 3600) {
         $num = floor($seconds_elapsed / 60);
         $age = pluralize("{$num} minute");
-    }
-    else if ($seconds_elapsed >= 3600 && $seconds_elapsed < 86400)
-    {
+    } else if ($seconds_elapsed >= 3600 && $seconds_elapsed < 86400) {
         $num = floor($seconds_elapsed / 3600);
         $age = pluralize("{$num} hour");
-    }
-    else if ($seconds_elapsed >= 86400 && $seconds_elapsed < 604800)
-    {
+    } else if ($seconds_elapsed >= 86400 && $seconds_elapsed < 604800) {
         $num = floor($seconds_elapsed / 86400);
         $age = pluralize("{$num} day");
-    }
-    else if ($seconds_elapsed >= 604800 && $seconds_elapsed < 2626560)
-    {
+    } else if ($seconds_elapsed >= 604800 && $seconds_elapsed < 2626560) {
         $num = floor($seconds_elapsed / 604800);
         $age = pluralize("{$num} week");
-    }
-    else if ($seconds_elapsed >= 2626560 && $seconds_elapsed < 31536000)
-    {
+    } else if ($seconds_elapsed >= 2626560 && $seconds_elapsed < 31536000) {
         $num = floor($seconds_elapsed / 2626560);
         $age = pluralize("{$num} month");
-    }
-    else if ($seconds_elapsed >= 31536000)
-    {
+    } else if ($seconds_elapsed >= 31536000) {
         $num = floor($seconds_elapsed / 31536000);
         $age = pluralize("{$num} year");
     }
@@ -686,30 +596,24 @@ function age($date)
  */
 function age_date($date)
 {
-    if (!$time = strtotime($date))
-    {
+    if (!$time = strtotime($date)) {
         return '';
     }
-
-    // Today.
-    if (date('Y-m-d') == date('Y-m-d', $time))
-    {
+    // Today
+    if (date('Y-m-d') == date('Y-m-d', $time)) {
         return age($date);
     }
-
     // Within 1 year?
-    if ($time >= time() - 31536000)
-    {
+    if ($time >= time() - 31536000) {
         return date('M j', $time);
-    }
-    else
-    {
+    } else {
         return date('M j, Y', $time);
     }
 }
 
 /**
  * Format number as localized money string
+ *
  * @param  string $amount Money value amount
  * @param  bool $format (Optional) Flag to display negative amount (default true)
  * @param  bool $negative (Optional) Flag to format amount with currency symbol and parantheses (default true)
@@ -722,37 +626,30 @@ function money($amount, $format = true, $negative = true, $locale = null)
     $amount = ($negative || $amount > 0) ? $amount : 0;
 
     // Override default money locale?
-    if ($locale)
-    {
-        // Character set optional (default UTF-8).
+    if ($locale) {
+        // Character set optional (default UTF-8)
         $locale = strpos('.', $locale) === false ? $locale.".UTF-8" : $locale;
-
-        // Save original.
+        // Save original
         $orig_locale = setlocale(LC_ALL, 0);
-
-        // Override.
+        // Override
         setlocale(LC_ALL, $locale);
     }
 
-    // Use localeconv.
+    // Use localeconv
     $lc = localeconv();
 
     // Format with symbol?
-    if ($format)
-    {
-        if ($amount < 0)
-        {
-            // Nevative value.
+    if ($format) {
+        if ($amount < 0) {
+            // Nevative value
             $result = '('.$lc['currency_symbol'].number_format(
                 abs(floatval($amount)),
                 $lc['frac_digits'],
                 $lc['decimal_point'],
                 $lc['thousands_sep']
             ).')';
-        }
-        else
-        {
-            // Positive value.
+        } else {
+            // Positive value
             $result = $lc['currency_symbol'].number_format(
                 floatval($amount),
                 $lc['frac_digits'],
@@ -760,10 +657,8 @@ function money($amount, $format = true, $negative = true, $locale = null)
                 $lc['thousands_sep']
             );
         }
-    }
-    else
-    {
-        // Number without currency symbol.
+    } else {
+        // Number without currency symbol
         $result = number_format(
             floatval($amount),
             $lc['frac_digits'],
@@ -773,8 +668,7 @@ function money($amount, $format = true, $negative = true, $locale = null)
     }
 
     // Reset locale?
-    if ($orig_locale)
-    {
+    if ($orig_locale) {
         setlocale(LC_ALL, $orig_locale);
     }
 
@@ -799,8 +693,7 @@ function json_print($json, $indent = null)
     $out_of_quotes = true;
 
     // Auto convert to json string
-    if (!is_string($json))
-    {
+    if (!is_string($json)) {
         // Note: will consider empty arrays as array vs object
         $json = json_encode($json);
     }
@@ -808,42 +701,32 @@ function json_print($json, $indent = null)
     // Unescape slashes
     $json = str_replace('\/', '/', $json);
 
-    for ($i = 0; $i <= strlen($json); $i++)
-    {
+    for ($i = 0; $i <= strlen($json); $i++) {
         $char = substr($json, $i, 1);
 
-        if ($char == '"' && $prev_char != '\\')
-        {
+        if ($char == '"' && $prev_char != '\\') {
             $out_of_quotes = !$out_of_quotes;
-        }
-        else if (($char == '}' || $char == ']') && $out_of_quotes)
-        {
+        } else if (($char == '}' || $char == ']') && $out_of_quotes) {
             $result .= $newline;
             $pos--;
-            for ($j=0; $j<$pos; $j++)
-            {
+            for ($j=0; $j<$pos; $j++) {
                 $result .= $indent;
             }
         }
 
         $result .= $char;
 
-        if (($char == ',' || $char == '{' || $char == '[') && $out_of_quotes)
-        {
+        if (($char == ',' || $char == '{' || $char == '[') && $out_of_quotes) {
             $result .= $newline;
-            if ($char == '{' || $char == '[')
-            {
+            if ($char == '{' || $char == '[') {
                 $pos++;
             }
-
-            for ($j = 0; $j < $pos; $j++)
-            {
+            for ($j = 0; $j < $pos; $j++) {
                 $result .= $indent;
             }
         }
 
-        if (($char == ':') && $out_of_quotes)
-        {
+        if (($char == ':') && $out_of_quotes) {
             $result .= ' ';
         }
 
@@ -864,12 +747,9 @@ function eval_conditions($conditions, $value = null)
 {
     $match = true;
 
-    if (is_array($conditions))
-    {
-        foreach ($conditions as $key => $compare)
-        {
-            if ($key && $key[0] === '$')
-            {
+    if (is_array($conditions)) {
+        foreach ($conditions as $key => $compare) {
+            if ($key && $key[0] === '$') {
                 switch ($key) {
                 case '$eq':
                     $match = ($value === $compare);
@@ -890,21 +770,17 @@ function eval_conditions($conditions, $value = null)
                     $match = ($value >= $compare);
                     break;
                 }
-            }
-            else
-            {
+            } else {
                 $match = eval_conditions($compare, $value[$key]);
             }
-            if (!$match)
-            {
+            if (!$match) {
                 break;
             }
         }
-    }
-    else
-    {
+    } else {
         $match = ($conditions === $value);
     }
+
     return $match;
 }
 
@@ -935,10 +811,8 @@ function eval_formula($expression, $scope = null)
  */
 function image_url($params)
 {
-    if ($params['image'])
-    {
-        foreach ($params['image'] as $key => $val)
-        {
+    if ($params['image']) {
+        foreach ($params['image'] as $key => $val) {
             $params[$key] = $val;
         }
     }
@@ -970,29 +844,22 @@ function image_url($params)
     $orig_file_path = $path.$orig_url;
 
     // Ideally exists already
-    if (is_file($file_path))
-    {
+    if (is_file($file_path)) {
         return $url;
     }
     
-    if (is_file($orig_file_path))
-    {
+    if (is_file($orig_file_path)) {
         // Already cached
         $src_image = imagecreatefromstring(file_get_contents($orig_file_path));
-    }
-    else
-    {
+    } else {
         // Get file data directly from link to avoid bloating memory
-        if (method_exists($file, 'link_url'))
-        {
+        if (method_exists($file, 'link_url')) {
             $file_data_link = $file->link_url('data');
             $file_data = $file->client()->get($file_data_link);
         }
-        if (!$file_data)
-        {
+        if (!$file_data) {
             // File does not exist
-            if ($default || $if_exists !== false)
-            {
+            if ($default || $if_exists !== false) {
                 return $default ?: '';
             }
 
@@ -1004,35 +871,27 @@ function image_url($params)
         // ...
 
         // Convert image data from explicit or implicit base64 encoding
-        if (is_array($file_data) && $file_data['$binary'])
-        {
+        if (is_array($file_data) && $file_data['$binary']) {
+            $src_data = base64_decode($file_data);
+        } else if (is_string($file_data)) {
             $src_data = base64_decode($file_data);
         }
-        else if (is_string($file_data))
-        {
-            $src_data = base64_decode($file_data);
-        }
-        if (!$src_data)
-        {
+        if (!$src_data) {
             // Invalid format
             return $default ?: '';
         }
 
         // Create orig image from file data
         $src_image = imagecreatefromstring($src_data);
-        if ($src_image === false)
-        {
+        if ($src_image === false) {
             // Psuedo error
             return "#/error-unsupported-image-type-or-format-or-corrupt{$url}";
         }
 
         // Save source file to local cache
-        if (is_writeable(dirname($orig_file_path)))
-        {
+        if (is_writeable(dirname($orig_file_path))) {
             imagejpeg($src_image, $orig_file_path, '100');
-        }
-        else
-        {
+        } else {
             throw new \Exception("Unable to save image in ".dirname($orig_file_path)."/ (permission denied)");
         }
     }
@@ -1042,12 +901,9 @@ function image_url($params)
     $src_height = imagesy($src_image);
     
     // Proportional width or height?
-    if (!$width)
-    {
+    if (!$width) {
         $width = $src_width * ($height / $src_height);
-    }
-    else if (!$height)
-    {
+    } else if (!$height) {
         $height = $src_height * ($width / $src_width);
     }
 
@@ -1071,15 +927,12 @@ function image_url($params)
     $ratio_y = ($src_width / $dest_width);
     
     // Determine resize width, height position, with or without padding
-    if (($padded && $ratio_y <= $ratio_x) || (!$padded && $ratio_x <= $ratio_y))
-    {
+    if (($padded && $ratio_y <= $ratio_x) || (!$padded && $ratio_x <= $ratio_y)) {
         $ratio = $ratio_x;
         $new_height = $dest_height;
         $new_width = round($src_width / $ratio);
         $dest_x = -(($new_width - $dest_width) / 2);
-    }
-    else
-    {
+    } else {
         $ratio = $ratio_y;
         $new_width = $dest_width;
         $new_height = round($src_height / $ratio);
@@ -1087,20 +940,14 @@ function image_url($params)
     }
 
     // Anchor top, left, bottom, right?
-    if (strpos($anchor, 'top') !== false)
-    {
+    if (strpos($anchor, 'top') !== false) {
         $dest_y = 0;
-    }
-    else if (strpos($anchor, 'bottom') !== false)
-    {
+    } else if (strpos($anchor, 'bottom') !== false) {
         $dest_y = $height - $new_height;
     }
-    if (strpos($anchor, 'left') !== false)
-    {
+    if (strpos($anchor, 'left') !== false) {
         $dest_x = 0;
-    }
-    else if (strpos($anchor, 'right') !== false)
-    {
+    } else if (strpos($anchor, 'right') !== false) {
         $dest_x = $width - $new_width;
     }
 
@@ -1111,13 +958,10 @@ function image_url($params)
     imagecopyresampled($dest_image, $src_image, $dest_x, $dest_y, 0, 0, $new_width, $new_height, $src_width, $src_height);
     
     // Write image file to local cache
-    if (is_writeable(dirname($file_path)))
-    {
+    if (is_writeable(dirname($file_path))) {
         // Write the image to the correct path
         imagejpeg($dest_image, $file_path, '100');
-    }
-    else
-    {
+    } else {
         throw new \Exception("Unable to save image in ".str_replace('//', '/', dirname($file_path))."/ (permission denied)");
     }
 
