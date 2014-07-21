@@ -205,9 +205,6 @@ namespace Forward
          */
         public function put_index($collection, $key, $size)
         {
-            // TODO: Add indexes for all expand links also,
-            // So that cached expand data gets correctly invalidated
-
             $this->get_index();
 
             // Limit size of index per client/collection

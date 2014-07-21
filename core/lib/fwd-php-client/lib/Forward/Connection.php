@@ -173,6 +173,9 @@ namespace Forward
             if ($data['$error']) {
                 throw new ServerException((string)$data['$error']);
             }
+            if ($data['$end']) {
+                $this->close();
+            }
 
             return $data;
         }

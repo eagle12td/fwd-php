@@ -46,7 +46,7 @@ namespace Forward
          * Default rescue server host
          * @static string
          */
-        public static $default_rescue_host = "rescue.getfwd.com";
+        public static $default_rescue_host = "rescue.api.getfwd.com";
 
         /**
          * Default api server port (secure)
@@ -172,8 +172,13 @@ namespace Forward
             }
 
             if ($result['$auth']) {
-                $this->authed = true;
-                $result = $this->auth($result['$auth']);
+                if ($result['$end']) {
+                    // Connection ended, retry
+                    return $this->request($method, $url, $data['$data']);
+                } else {
+                    $this->authed = true;
+                    $result = $this->auth($result['$auth']);
+                }
             }
 
             return $this->response($method, $url, $data, $result);
@@ -237,6 +242,10 @@ namespace Forward
          */
         function request_proxy_data($data)
         {
+            if ($this->is_rescue) {
+                return $data;
+            }
+
             $data['$proxy'] = array(
                 'client' => $this->params['route']
                     ? $this->params['route']['client']
