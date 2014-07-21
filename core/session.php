@@ -133,10 +133,10 @@ class Session extends Util\ArrayInterface
             self::$error = $e->getMessage();
             throw $e;
         }
-        self::$data_key = md5(json_encode(self::$data));
         foreach ((array)self::$data as $key => $val) {
             $_SESSION[$key] = $val;
         }
+        self::$data_key = md5(json_encode($_SESSION));
         return true;
     }
 
@@ -152,7 +152,9 @@ class Session extends Util\ArrayInterface
         if (!self::$error) {
             $is_changed = (md5(json_encode($_SESSION)) != self::$data_key);
             if ($is_changed) {
-                Request::client('put', '/:sessions/:current', $_SESSION);
+                Request::client('put', '/:sessions/:current', array(
+                    '$replace' => $_SESSION
+                ));
             }
             return true;
         }
