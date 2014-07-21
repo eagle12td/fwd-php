@@ -431,21 +431,25 @@ class Request
                 $client[$key] = $val;
             }
         }
-        
         $client_config = array(
             'id' => $client['id'] ?: $config['client_id'],
             'key' => $client['key'] ?: $config['client_key'],
             'host' => $client['host'] ?: $config['client_host'],
             'port' => $client['port'] ?: $config['client_port'],
+            'clear' => $client['clear'] ?: $config['client_clear'],
             'clear_port' => $client['clear_port'] ?: $config['client_clear_port'],
             'version' => $client['version'] ?: $config['client_version'],
             'api' => $client['api'] ?: $config['client_api'],
-            'rescue' => $client['rescue'] ?: $config['client_rescue'],
             'proxy' => $client['proxy'] ?: $config['client_proxy'],
-            'verify_cert' => $client['verify_cert'] !== null ? $client['verify_cert']: $config['client_verify_cert'],
-            'clear' => $client['clear'] !== null ? $client['clear'] : $config['client_clear'],
-            'cache' => $client['cache'] !== null ? $client['cache'] : $config['client_cache'],
-            'session' => $client['session'] !== null ? $client['session'] : $config['client_session']
+            // Following options may be set 'false', other they default truthy
+            'verify_cert' => $client['verify_cert'] !== null
+                ? $client['verify_cert']: $config['client_verify_cert'],
+            'rescue' => $client['rescue'] !== null
+                ? $client['rescue'] : $config['client_rescue'],
+            'cache' => $client['cache'] !== null
+                ? $client['cache'] : $config['client_cache'],
+            'session' => $client['session'] !== null
+                ? $client['session'] : $config['client_session']
         );
         if ($client_config['cache'] === null) {
             $client_config['cache'] = true; // Default cache enabled
