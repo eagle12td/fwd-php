@@ -80,7 +80,10 @@ class Controller
         }
 
         $class = "{$controller['namespace']}\\{$controller['class']}";
-        self::$classes[$class] = $controller;
+        if (!isset(self::$classes[$class])) {
+            self::$classes[$class] = $controller;
+            self::load_helpers($class); // Lazy load helpers
+        }
 
         if (!class_exists($class)) {
             throw new \Exception($controller['class'].' not defined in '.$controller['path']);
@@ -88,7 +91,7 @@ class Controller
 
         $instance = new $class($params);
         $default_method = $controller['method'] ?: $instance->default;
-        $method = $default_method ?: 'session';
+        $method = $default_method ?: 'index';
 
         if (is_null($method)) {
             return;
@@ -217,6 +220,32 @@ class Controller
             $content = implode("\n", $lines);
             $message .= "<pre>{$content}</pre>";
             throw new \Exception($message);
+        }
+    }
+
+    /**
+     * Load and register controller helpers
+     *
+     * @return void
+     */
+    public static function load_helpers($controller_class)
+    {
+        if (!property_exists($controller_class, 'helpers')) {
+            return;
+        }
+        foreach ((array)$controller_class::$helpers as $key => $helper) {
+            $helper_prop = is_numeric($key) ? $helper : $key;
+            $helper_name = $helper;
+            if (method_exists($controller_class, $helper_prop)) {
+                Helper::register($helper_name, function() use($controller_class, $helper_prop)
+                {
+                    return forward_static_call_array(
+                        array($controller_class, $helper_prop), func_get_args()
+                    );
+                });
+            } else {
+                throw new \Exception('Helper not declared at '.$controller_class.'::'.$helper_prop);
+            }
         }
     }
 }
