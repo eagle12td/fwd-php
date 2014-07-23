@@ -2,7 +2,10 @@
 
 class ApiController
 {
-    function index()
+    /**
+     * Default API console index
+     */
+    public function index()
     {
         $options = array();
 
@@ -38,7 +41,12 @@ class ApiController
         );
     }
 
-    function get_options_sorted()
+    /**
+     * Get sorted API options
+     *
+     * @return array
+     */
+    private function get_options_sorted()
     {
         $options = get("/:options");
         $options = $options instanceof \Forward\Resource 
