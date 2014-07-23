@@ -56,7 +56,7 @@ class Request
     public static function dispatch($url = null, $routes = null, $return = false)
     {
         // Sanitize and parse request
-        $request = self::$vars = self::parse($url);
+        $request = self::parse($url);
         $request = self::route($request, $routes ?: Config::get('routes'));
         $request = Event::trigger('request', 'dispatch', $request);
         
@@ -83,7 +83,7 @@ class Request
             throw new \Exception("View not found at {$request['view_path']}", 404);
         }
 
-        $request = array_merge((array)self::$vars, $request);
+        $request = self::$vars = array_merge((array)self::$vars, $request);
 
         // Restore persisted request vars
         Request::restore();
@@ -422,15 +422,19 @@ class Request
             'clients'
         ));
 
-        $client = self::$vars['client'] ?: $config['client'] ?: array();
-
-        if (is_string($client)) {
-            $client_config = $config['clients'][$client];
-            $client = array();
-            foreach ($client_config as $key => $val) {
-                $client[$key] = $val;
-            }
+        $request_client = self::$vars['client'] ?: array();
+        if (is_string($request_client)) {
+            $request_client = $config['clients'][$request_client];
         }
+        $config_client = $config['client'] ?: array();
+        if (is_string($client)) {
+            $client_config = $config['clients'][$config_client];
+        }
+        $client = array_merge(
+            (array)$client_config,
+            (array)$request_client,
+            (array)$config['client']
+        );
         $client_config = array(
             'id' => $client['id'] ?: $config['client_id'],
             'key' => $client['key'] ?: $config['client_key'],
