@@ -55,9 +55,9 @@ class Controller
             }
 
             if ($was_array) {
-                $results[] = self::invoke_method($controller, &$vars, $params);
+                $results[] = self::invoke_method($controller, $vars, $params);
             } else {
-                $results = self::invoke_method($controller, &$vars, $params);
+                $results = self::invoke_method($controller, $vars, $params);
             }
         }
 

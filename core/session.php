@@ -37,7 +37,7 @@ class Session extends Util\ArrayInterface
     public function __construct()
     {
         self::start();
-        parent::__construct(&$_SESSION);
+        parent::__construct($_SESSION);
     }
 
     /**
