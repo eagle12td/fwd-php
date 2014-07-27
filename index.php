@@ -7,6 +7,11 @@
  * @license  http://www.apache.org/licenses/LICENSE-2.0
  */
 
+/* -----------------------------------------------------
+ * Default Error Reporting Level
+ * -------------------------------------------------- */
+
+error_reporting(E_ERROR | E_WARNING | E_PARSE);
 
 /* -----------------------------------------------------
  * Set framework file paths

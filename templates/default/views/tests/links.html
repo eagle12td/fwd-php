@@ -1,12 +1,11 @@
-{*{$cart = get("/carts/:last?expand=items.product")}
-{$cart.items|dump}*}
+{* Test order links *}
 
-{$product = get("/products/:last?expand=variants.product")}
+{$order = get("/orders/:last")}
 
-{$product.variants|dump}
+{$order|dump}
 
 <ul>
-{foreach $product.variants as $v}
-	<li>{$v.name} : {$v.product.name}</li>
+{foreach $order.items as $item}
+	<li>{$item.product.name} : {$item.product.price}</li>
 {/foreach}
 </ul>

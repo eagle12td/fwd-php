@@ -39,7 +39,8 @@ class View
     {
         $route_path = $request['path'];
         $template_path = $request['template_path'];
-        $view_orig = $request['view'];
+        $view_orig = isset($request['view']) ? $request['view'] : null;
+        $view_required = isset($request['required']) ? $request['required'] : null;
 
         // Get output from view
         if (preg_match('/[^\/]+\.([^\/]+)$/', $route_path, $matches)) {
@@ -47,7 +48,7 @@ class View
             $view = substr($route_path, 0, strrpos($route_path, '.'));
         } else {
             $view = $route_path;
-            $view_output = $request['output'] ?: 'html';
+            $view_output = isset($request['output']) ? $request['output'] : 'html';
         }
         if ($view) {
             $view = '/'.ltrim($view, '/');
@@ -77,7 +78,8 @@ class View
         $view_output = $view['output'];
         $view_orig = $view['orig'];
         $template_path = $request['template_path'];
-        $extend_template_path = $request['extend_template_path'];
+        $extend_template_path = isset($request['extend_template_path'])
+            ? $request['extend_template_path'] : null;
 
         // Split view into parts
         $view_parts = explode('/', trim($view['view'], '/'));
@@ -201,7 +203,7 @@ class View
      */
     private static function render_content($request, &$vars)
     {
-        $content = Template::engine()->render($request['view_path'], &$vars);
+        $content = Template::engine()->render($request['view_path'], $vars);
         return $content;
     }
 
@@ -219,10 +221,11 @@ class View
         }
 
         $default = $request['ajax'] ? 'ajax' : 'default';
-        $layout = $request['layout'] ?: $default;
+        $layout = isset($request['layout']) ? $request['layout'] : $default;
         $layout_file = $layout.'.'.$request['output'];
         $layout_path = $request['template_path'].'/views/layouts/'.$layout_file;
-        $extend_layout_path = $request['extend_template_path'].'/views/layouts/'.$layout_file;
+        $extend_layout_path = isset($request['extend_template_path'])
+            ? $request['extend_template_path'].'/views/layouts/'.$layout_file : null;
 
         if (!is_file($layout_path)) {
             if (!is_file($extend_layout_path)) {
@@ -237,7 +240,7 @@ class View
         }
     
         $vars['content_for_layout'] = $content;
-        $content = Template::engine()->render($layout_path, &$vars);
+        $content = Template::engine()->render($layout_path, $vars);
 
         return $content;
     }
@@ -275,7 +278,7 @@ class View
         $info = new \ReflectionFunction($callback);
         $args = array_pad($request['args'], $info->getNumberOfParameters(), null);
         $vars = Template::engine()->get();
-        $args = array_unshift(&$vars);
+        $args = array_unshift($vars);
 
         $result = call_user_func_array($callback, $args);
 

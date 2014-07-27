@@ -65,6 +65,12 @@ namespace Forward
         protected $last_request_id;
 
         /**
+         * Request counter
+         * @var int
+         */
+        public $request_count;
+
+        /**
          * Construct a connection
          *
          * @param  string $host
@@ -170,10 +176,10 @@ namespace Forward
             $data = $message[0];
             $id = $message[1];
 
-            if ($data['$error']) {
+            if (isset($data['$error'])) {
                 throw new ServerException((string)$data['$error']);
             }
-            if ($data['$end']) {
+            if (isset($data['$end'])) {
                 $this->close();
             }
 
@@ -196,7 +202,9 @@ namespace Forward
                     serialize(array($hash_id, $set_params))
                 );
             }
-            return $this->last_request_id;
+            $this->request_count = $this->request_count ?: 0;
+            $this->request_count++;
+            return $this->last_request_id.'-'.$this->request_count;
         }
 
         /**

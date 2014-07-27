@@ -34,7 +34,7 @@ class Event
      */
     public static function bind($target, $event, $callback = null, $level = 1)
     {
-        if (is_null($callback)) {
+        if ($callback === null) {
             $callback = $event;
             $event = $target;
             $target = 0;
@@ -50,8 +50,8 @@ class Event
             $pre = $event['pre'];
             $name = $event['name'];
 
-            // Make sure it's only bound once.
-            if (!is_array(static::$events[$key][$pre][$name][$level])) {
+            // Make sure it's only bound once
+            if (!isset(static::$events[$key][$pre][$name][$level])) {
                 static::$events[$key][$pre][$name][$level] = array();
             }
             foreach (static::$events[$key][$pre][$name] as $event_level) {
@@ -62,7 +62,7 @@ class Event
                 }
             }
 
-            // "Bind" the callback.
+            // "Bind" the callback
             static::$events[$key][$pre][$name][$level][] = $callback;
 
             // Sort levels.
@@ -82,12 +82,12 @@ class Event
     public static function parse_bind_events($target, $event)
     {
         // Event arg optionally combined with target
-        if (is_null($event)) {
+        if ($event === null) {
             $event = $target;
             $target = 0;
         } else {
             // Convert object to class string
-            if (is_object($target)) {
+            if ((object)$target === $target) {
                 $target = get_class($target);
             }
             // Target is case insensitive
@@ -98,9 +98,7 @@ class Event
 
         // Event format is an Array or string of
         // [target.][pre:]event[,[pre:]event]
-        $event_parts = is_array($event)
-            ? $event
-            : explode(',', $event);
+        $event_parts = (array)$event === $event ? $event : explode(',', $event);
             
         foreach ($event_parts as $event) {
             $event = strtolower($event);
@@ -126,8 +124,13 @@ class Event
 
             // Determine pre value
             $pre_parts = explode(':', $event);
-            $name = $pre_parts[1] ?: $pre_parts[0];
-            $pre = $pre_parts[1] ? $pre_parts[0] : 'on';
+            if (count($pre_parts) > 1) {
+                $name = $pre_parts[1];
+                $pre = $pre_parts[0];
+            } else {
+                $name = $pre_parts[0];
+                $pre = 'on';
+            }
 
             // Save parsed event
             $parsed_events[] = array(
@@ -182,6 +185,9 @@ class Event
 
             // Trigger callback[s]
             foreach ($pre_set as $pre) {
+                if (!isset(self::$events[$key][$pre][$name])) {
+                    continue;
+                }
                 foreach ((array)self::$events[$key][$pre][$name] as $event_level) {
                     foreach ((array)$event_level as $callback) {
                         // TODO: use reflection to detect callback arg count

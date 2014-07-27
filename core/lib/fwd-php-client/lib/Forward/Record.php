@@ -27,12 +27,13 @@ namespace Forward
          */
         function offsetGet($field)
         {
-            if (is_null($field)) {
+            if ($field === null) {
                 return;
             }
-
-            $link_result = $this->offset_get_link($field);
-
+            $link_result = null;
+            if ($this->links && (isset($this->links[$field]) || $field === '$links')) {
+                $link_result = $this->offset_get_link($field);
+            }
             if ($link_result !== null) {
                 return $link_result;
             } else {
@@ -48,47 +49,48 @@ namespace Forward
          **/
         function offset_get_link($field)
         {
-            if ($header_links = $this->links()) {
-                if ($field === '$links') {
-                    $links = array();
-                    foreach ($header_links['*'] ?: $header_links as $key => $link) {
-                        if ($link['url']) {
-                            $links[$key] = $this->link_url($key);
-                        }
-                    }
-                    return $links;
-                }
-                if (isset($header_links[$field]['url'])) {
-                    if (!array_key_exists($field, (array)$this->links)) {
-                        $data = $this->data();
-                        if (array_key_exists($field, (array)$data)) {
-                            if (is_array($data[$field])) {
-                                $this->links[$field] = Resource::instance(array(
-                                    '$url' => $this->link_url($field),
-                                    '$data' => $data[$field],
-                                    '$links' => $header_links[$field]['links']
-                                ));
-                            } else {
-                                $this->links[$field] = $data[$field];
-                            }
-                        } else {
-                            // Avoid storing too much memory from links
-                            $mem_start = memory_get_usage();
-                            $link_url = $this->link_url($field);
-                            $result = $this->client()->get($link_url);
-                            $mem_total = memory_get_usage() - $mem_start;
+            $header_links = $this->links;
 
-                            // Max one megabyte
-                            if ($mem_total < 1048576) {
-                                $this->links[$field] = $result;
-                            } else {
-                                return $result;
-                            }
+            if ($field === '$links') {
+                $links = array();
+                foreach ($header_links['*'] ?: $header_links as $key => $link) {
+                    if ($link['url']) {
+                        $links[$key] = $this->link_url($key);
+                    }
+                }
+                return $links;
+            }
+            if (isset($header_links[$field])) {
+                if (!array_key_exists($field, $this->link_data)) {
+                    $data = $this->data();
+                    if (isset($data[$field])) {
+                        if ((array)$data[$field] === $data[$field]) {
+                            $this->link_data[$field] = Resource::instance(array(
+                                '$url' => $this->link_url($field),
+                                '$data' => $data[$field],
+                                '$links' => $header_links[$field]['links']
+                            ));
+                        } else {
+                            $this->link_data[$field] = $data[$field];
+                        }
+                    } else {
+
+                        // Avoid storing too much memory from links
+                        $mem_start = memory_get_usage();
+                        $link_url = $this->link_url($field);
+                        $result = $this->client()->get($link_url);
+                        $mem_total = memory_get_usage() - $mem_start;
+
+                        // Max one megabyte
+                        if ($mem_total < 1048576) {
+                            $this->link_data[$field] = $result;
+                        } else {
+                            return $result;
                         }
                     }
-                    if (array_key_exists($field, (array)$this->links)) {
-                        return $this->links[$field];
-                    }
+                }
+                if (array_key_exists($field, (array)$this->link_data)) {
+                    return $this->link_data[$field];
                 }
             }
 
@@ -103,24 +105,28 @@ namespace Forward
          **/
         function offset_get_result($field)
         {
-            $data = $this->data();
-            $header_links = $this->links();
+            $header_links = $this->links;
 
-            $data_links = $header_links['*'] ?: $header_links[$field]['links'];
+            $data_links = null;
+            if (isset($this->links['*'])) {
+                $data_links = $header_links['*'];
+            } else if (isset($header_links[$field]['links'])) {
+                $data_links = $header_links[$field]['links'];
+            }
 
-            if (is_array($data[$field]) || (!$data[$field] && $data_links)) {
+            $data_field = parent::offsetExists($field) ? parent::offsetGet($field) : null;
+
+            if (((array)$data_field === $data_field) || (!$data_field && $data_links)) {
                 $data_record = new Record(array(
                     '$url' => $this->link_url($field),
-                    '$data' => $data[$field],
+                    '$data' => $data_field,
                     '$links' => $data_links
                 ));
                 $this->offsetSet($field, $data_record);
                 return $data_record;
-            } else {
-                return $data[$field];
             }
 
-            return null;
+            return $data_field;
         }
 
         /**
@@ -163,7 +169,7 @@ namespace Forward
         function dump($return = false, $print = true, $depth = 1)
         {
             $dump = $this->data();
-            $links = $this->links();
+            $links = $this->links;
 
             foreach ($links as $key => $link) {
                 if ($depth < 1) {

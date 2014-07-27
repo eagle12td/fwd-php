@@ -15,16 +15,29 @@ namespace Forward
         protected $url;
 
         /**
-         * Cache of resource links
+         * Resource links
          * @var array
          */
-        protected static $links;
+        protected $links;
 
         /**
-         * Client for linking
+         * Resource link data
+         * @var array
+         */
+        protected $link_data = array();
+
+        /**
+         * Client reference for linking
          * @var Forward\Client
          */
-        private static $client;
+        protected static $client;
+
+        /**
+         * Cache of client resource links
+         * @var array
+         */
+        protected static $client_links = array();
+
 
         /**
          * Resource constructor
@@ -34,16 +47,20 @@ namespace Forward
          */
         function __construct($result, $client = null)
         {
-            if ($result['$url']) {
-                $this->url = $result['$url'];
-                if ($result['$links']) {
-                    self::$links[$this->url] = $result['$links'];
-                }
-            }
             if ($client) {
                 self::$client = $client;
             }
-            if (is_array($result['$data'])) {
+            if (isset($result['$url'])) {
+                $this->url = $result['$url'];
+                if (isset($result['$links'])) {
+                    $this->result_links = $result['$links'];
+                    self::$client_links[$this->url] = $result['$links'];
+                }
+            }
+
+            $this->links =& $this->links() ?: array();
+
+            if ((array)$result['$data'] === $result['$data']) {
                 ksort($result['$data']);
                 parent::__construct($result['$data']);
             }
@@ -56,7 +73,7 @@ namespace Forward
          */
         public static function instance($result, $client = null)
         {
-            if (is_array($result['$data'])
+            if ((array)$result['$data'] === $result['$data']
                 && isset($result['$data']['count'])
                 && isset($result['$data']['results'])) {
                 return new Collection($result, $client);
@@ -101,7 +118,7 @@ namespace Forward
                         $data[$key] = $val->data($raw);
                     }
                 }
-                foreach ((array)$this->links as $key => $val) {
+                foreach ($this->link_data as $key => $val) {
                     if ($val instanceof Resource) {
                         $data[$key] = $val->data($raw);
                     }
@@ -126,9 +143,12 @@ namespace Forward
          *
          * @return array
          */
-        function links()
+        function &links()
         {
-            return (array)self::$links[$this->url];
+            if (!isset(self::$client_links[$this->url])) {
+                self::$client_links[$this->url] = array();
+            }
+            return self::$client_links[$this->url];
         }
 
         /**
@@ -148,17 +168,17 @@ namespace Forward
          */
         function dump_links($links = null)
         {
-            if (is_null($links)) {
-                $links = $this->links();
+            if ($links === null) {
+                $links = $this->links;
             }
             $dump = array();
-            foreach ((array)$links as $key => $link) {
-                if ($link['url']) {
+            foreach ($links as $key => $link) {
+                if (isset($link['url'])) {
                     $dump[$key] = $link['url'];
                 }
                 if ($key === '*') {
                     $dump = array_merge($dump, $this->dump_links($link));
-                } else if ($link['links']) {
+                } else if (isset($link['links'])) {
                     $dump[$key] = $this->dump_links($link['links']);
                 }
             }

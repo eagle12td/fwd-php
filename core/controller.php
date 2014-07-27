@@ -90,8 +90,12 @@ class Controller
         }
 
         $instance = new $class($params);
-        $default_method = $controller['method'] ?: $instance->default;
-        $method = $default_method ?: 'index';
+        $method = 'index';
+        if (isset($controller['method'])) {
+            $method = $controller['method'];
+        } else if (property_exists($instance, 'default')) {
+            $method = $instance->default;
+        }
 
         if (is_null($method)) {
             return;
@@ -106,7 +110,7 @@ class Controller
                     $instance->{$var} = $value;
                 }
 
-                $result = call_user_method_array($method, $instance, array($params));
+                $result = call_user_func_array(array($instance, $method), array($params));
                 foreach ((array)$instance as $var => $value) {
                     $vars[$var] = $value;
                 }
@@ -135,13 +139,17 @@ class Controller
         $parts = explode('/', ltrim($name, '/'));
 
         $name = Util\camelize($parts[0]);
-        $namespace = "Forward\\".Util\camelize($request['template'])."Template";
-        $extend_namespace = "Forward\\".Util\camelize($request['extend_template'])."Template";
+        $namespace = isset($request['template'])
+            ? "Forward\\".Util\camelize($request['template'])."Template" : null;
+        $extend_namespace = isset($request['extend_template'])
+            ? "Forward\\".Util\camelize($request['extend_template'])."Template" : null;
         $class_name = $name.'Controller';
         $class_file = $class_name.'.php';
-        $class_path = $request['template_path'].'/controllers/'.$class_file;
-        $extend_class_path = $request['extend_template_path'].'/controllers/'.$class_file;
-        $class_method = $parts[1] ? Util\underscore($parts[1]) : null;
+        $class_path = isset($request['template_path'])
+            ? $request['template_path'].'/controllers/'.$class_file : null;
+        $extend_class_path = isset($request['extend_template_path'])
+            ? $request['extend_template_path'].'/controllers/'.$class_file : null;
+        $class_method = isset($parts[1]) ? Util\underscore($parts[1]) : null;
 
         return array(
             'name' => $name,

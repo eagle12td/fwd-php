@@ -118,7 +118,7 @@ function error_handler($code, $message, $file = "", $line = 0, $globals = null, 
     $backtrace = $trace ?: debug_backtrace();
     array_shift($backtrace);
 
-    if ($_SERVER['HTTP_HOST']) {
+    if (isset($_SERVER['HTTP_HOST'])) {
 ?>
     <html>
     <head>
@@ -223,11 +223,15 @@ function merge($set1, $set2)
     // TODO: make this work on any number of sets (func_get_args())
     $merged = $set1;
 
-    if (is_array($set2) || $set2 instanceof ArrayIterator) {
+    if ((array)$set2 === $set2 || $set2 instanceof ArrayIterator) {
         foreach ($set2 as $key => &$value) {
-            if ((is_array($value) || $value instanceof ArrayIterator) && (is_array($merged[$key]) || $merged[$key] instanceof ArrayIterator)) {
-                $merged[$key] = merge($merged[$key], $value);
-            } elseif (isset($value) && !(is_array($merged[$key]) || $merged[$key] instanceof ArrayIterator)) {
+            if (isset($merged[$key])) {
+                if (((array)$value === $value || $value instanceof ArrayIterator) && ((array)$merged[$key] === $merged[$key] || $merged[$key] instanceof ArrayIterator)) {
+                    $merged[$key] = merge($merged[$key], $value);
+                } elseif (isset($value) && !((array)$merged[$key] === $merged[$key] || $merged[$key] instanceof ArrayIterator)) {
+                    $merged[$key] = $value;
+                }
+            } else {
                 $merged[$key] = $value;
             }
         }
@@ -336,6 +340,7 @@ function words($string)
 function pluralize($string, $if_many = null)
 {
     // Conditional
+    $prefix = '';
     if ($if_many) {
         $if_many = (is_array($if_many)) ? count($if_many) : $if_many;
     } else if (is_numeric($string[0])) {
@@ -626,6 +631,7 @@ function money($amount, $format = true, $negative = true, $locale = null)
     $amount = ($negative || $amount > 0) ? $amount : 0;
 
     // Override default money locale?
+    $orig_locale = null;
     if ($locale) {
         // Character set optional (default UTF-8)
         $locale = strpos('.', $locale) === false ? $locale.".UTF-8" : $locale;
@@ -811,22 +817,24 @@ function eval_formula($expression, $scope = null)
  */
 function image_url($params)
 {
-    if ($params['image']) {
-        foreach ($params['image'] as $key => $val) {
+    if (isset($params['image'])) {
+        foreach ((array)$params['image'] as $key => $val) {
             $params[$key] = $val;
         }
     }
 
-    $file = $params['file'];
-    $width = $params['width'];
-    $height = $params['height'];
-    $padded = $params['padded'];
-    $anchor = $params['anchor'];
-    $default = $params['default'];
-    $if_exists = $params['if_exists'];
+    $file = isset($params['file']) ? $params['file'] : null;
+    $width = isset($params['width']) ? $params['width'] : null;
+    $height = isset($params['height']) ? $params['height'] : null;
+    $padded = isset($params['padded']) ? $params['padded'] : null;
+    $anchor = isset($params['anchor']) ? $params['anchor'] : null;
+    $default = isset($params['default']) ? $params['default'] : null;
+    $if_exists = isset($params['if_exists']) ? $params['if_exists'] : null;
 
     // File id and md5 required
-    if (!$file['id'] || !$file['md5']) return;
+    if (!isset($file['id']) || !isset($file['md5'])) {
+        return;
+    }
 
     // Build url path
     $id = "image.{$file['id']}";
@@ -871,7 +879,7 @@ function image_url($params)
         // ...
 
         // Convert image data from explicit or implicit base64 encoding
-        if (is_array($file_data) && $file_data['$binary']) {
+        if (is_array($file_data) && isset($file_data['$binary'])) {
             $src_data = base64_decode($file_data);
         } else if (is_string($file_data)) {
             $src_data = base64_decode($file_data);

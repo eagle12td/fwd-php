@@ -36,6 +36,18 @@ namespace Forward
         public static $default_index_limit = 1000;
 
         /**
+         * Cache collection versions
+         * @var array
+         */
+        public $versions = array();
+
+        /**
+         * Cache collection indexes
+         * @var array
+         */
+        public $indexes = array();
+
+        /**
          * Construct api client
          *
          * @param  string $client_id
@@ -51,8 +63,12 @@ namespace Forward
             $this->params = array(
                 'client_id' => $client_id,
                 'path' => $options['path'],
-                'write_perms' => $options['write_perms'] ?: self::$default_write_perms,
-                'index_limit' => $options['index_limit'] ?: self::$default_index_limit
+                'write_perms' => isset($options['write_perms'])
+                    ? $options['write_perms'] : self::$default_write_perms,
+                'index_limit' => isset($options['index_limit'])
+                    ? $options['index_limit'] : self::$default_index_limit,
+                'apc_enabled' => isset($options['apc_enabled'])
+                    ? $options['apc_enabled'] : (extension_loaded('apc') && ini_get('apc.enabled'))
             );
         }
 
@@ -66,14 +82,17 @@ namespace Forward
         {
             $cache_key = $this->get_key($url, $data);
 
-            if ($json = $this->get_file($cache_key, 'result')) {
+            if ($json = $this->get_cache($cache_key, 'result')) {
                 $result = json_decode($json, true);
 
                 // Ensure cache_key exists in index
                 $this->get_index();
 
-                if ($this->indexes[$result['$collection']][$cache_key]) {
-                    return $result;
+                if (isset($result['$collection'])) {
+                    $collection = $result['$collection'];
+                    if (isset($this->indexes[$collection][$cache_key])) {
+                        return $result;
+                    }
                 }
 
                 // Not found in proper index, then clear?
@@ -114,19 +133,6 @@ namespace Forward
         }
 
         /**
-         * Get the contents of a cache file
-         *
-         * @return string
-         */
-        public function get_file()
-        {
-            $args = func_get_args();
-            $cache_path = call_user_method_array('get_path', $this, $args);
-
-            return file_get_contents($cache_path);
-        }
-
-        /**
          * Get cache version info
          *
          * @return array
@@ -135,7 +141,7 @@ namespace Forward
         {
             if (!$this->versions) {
                 $this->versions = array();
-                if ($json = $this->get_file('versions')) {
+                if ($json = $this->get_cache('versions')) {
                     $this->versions = json_decode($json, true);
                 }
             }
@@ -152,7 +158,7 @@ namespace Forward
         {
             if (!$this->indexes) {
                 $this->indexes = array();
-                if ($json = $this->get_file('index')) {
+                if ($json = $this->get_cache('index')) {
                     $this->indexes = json_decode($json, true);
                 }
             }
@@ -182,16 +188,16 @@ namespace Forward
             $cache_content['$data'] = $cache_content['$data'];
 
             $cache_key = $this->get_key($url, $data);
-            $cache_file_path = $this->get_path($cache_key, 'result');
-            if ($size = $this->write_file($cache_file_path, $cache_content)) {
+            $cache_path = $this->get_path($cache_key, 'result');
+            if ($size = $this->write_cache($cache_path, $cache_content)) {
                 foreach ($this->result_collections($result) as $collection) {
                     // Collection may not be cacheable
-                    if (!$cached[$collection] && !$this->versions[$collection]) {
+                    if (!isset($cached[$collection]) && !isset($this->versions[$collection])) {
                         continue;
                     }
                     $this->put_index($collection, $cache_key, $size);
-                    if ($version = $cached[$collection]) {
-                        $this->put_version($collection, $version);
+                    if (isset($cached[$collection])) {
+                        $this->put_version($collection, $cached[$collection]);
                     }
                 }
             }
@@ -208,14 +214,16 @@ namespace Forward
             $this->get_index();
 
             // Limit size of index per client/collection
-            if (count($this->indexes[$collection]) >= $this->params['index_limit']) {
-                $this->truncate_index($collection);
+            if (isset($this->indexes[$collection])) {
+                if (count($this->indexes[$collection]) >= $this->params['index_limit']) {
+                    $this->truncate_index($collection);
+                }
             }
 
             $this->indexes[$collection][$key] = $size;
 
             $index_path = $this->get_path('index');
-            return $this->write_file($index_path, $this->indexes);
+            return $this->write_cache($index_path, $this->indexes);
         }
 
         /**
@@ -247,8 +255,7 @@ namespace Forward
                 $this->get_versions();
                 $this->versions[$collection] = $version;
                 $version_path = $this->get_path('versions');
-
-                return $this->write_file($version_path, $this->versions);
+                return $this->write_cache($version_path, $this->versions);
             }
         }
 
@@ -266,7 +273,7 @@ namespace Forward
 
             $cached = $result['$cached'];
             foreach ((array)$cached as $collection => $ver) {
-                if ($ver != $this->versions[$collection]) {
+                if (!isset($this->versions[$collection]) || $ver != $this->versions[$collection]) {
                     $this->put_version($collection, $ver);
                     $invalid[$collection] = true;
 
@@ -292,35 +299,64 @@ namespace Forward
          */
         public function clear_indexes($invalid)
         {
-            $this->get_index();
-            foreach ((array)$invalid as $collection => $key) {
-                // Clear all indexes per collection
-                if ($key === true) {
-                    foreach ((array)$this->indexes[$collection] as $cache_key => $size) {
-                        $file_path = $this->get_path($cache_key, 'result');
-                        @unlink($file_path);
+            if (!empty($invalid)) {
+                $this->get_index();
+                foreach ((array)$invalid as $collection => $key) {
+                    // Clear all indexes per collection
+                    if (isset($this->indexes[$collection])) {
+                        if ($key === true) {
+                            foreach ($this->indexes[$collection] as $cache_key => $size) {
+                                $cache_path = $this->get_path($cache_key, 'result');
+                                $this->clear_cache($cache_path);
+                            }
+                            unset($this->indexes[$collection]);
+                        }
+                        // Clear a single index element by key
+                        else if ($key && isset($this->indexes[$collection][$key])) {
+                            $cache_path = $this->get_path($key, 'result');
+                            $this->clear_cache($cache_path);
+                            unset($this->indexes[$collection][$key]);
+                        }
                     }
-                    unset($this->indexes[$collection]);
                 }
-                // Clear a single index element by key
-                else if ($key) {
-                    $file_path = $this->get_path($key, 'result');
-                    @unlink($file_path);
-                    unset($this->indexes[$collection][$key]);
-                }
+                $index_path = $this->get_path('index');
+                $this->write_cache($index_path, $this->indexes);
             }
-            $index_path = $this->get_path('index');
-            $this->write_file($index_path, $this->indexes);
         }
 
         /**
-         * Write a file atomically
+         * Get cache content
          *
-         * @param  string $file_path
+         * @return string
+         */
+        public function get_cache()
+        {
+            $args = func_get_args();
+            $cache_path = call_user_func_array(array($this, 'get_path'), $args);
+
+            if ($this->params['apc_enabled']) {
+                return apc_fetch($cache_path);
+            }
+
+            return file_get_contents($cache_path);
+        }
+
+        /**
+         * Write to cache atomically
+         *
+         * @param  string $cache_path
          * @param  mixed $content
          */
-        public function write_file($file_path, $content)
+        public function write_cache($cache_path, $content)
         {
+            $cache_content = json_encode($content);
+            $cache_size = strlen($cache_content);
+
+            if ($this->params['apc_enabled']) {
+                apc_store($cache_path, $cache_content);
+                return $cache_size;
+            }
+
             $temp = tempnam($this->params['path'], 'temp');
             if (!($f = @fopen($temp, 'wb'))) { 
                 $temp = $this->params['path'].'/'.uniqid('temp'); 
@@ -329,17 +365,32 @@ namespace Forward
                 }
             }
 
-            $size = fwrite($f, json_encode($content)); 
+            fwrite($f, $cache_content); 
             fclose($f); 
 
-            if (!rename($temp, $file_path)) { 
-                unlink($file_path); 
-                rename($temp, $file_path); 
+            if (!rename($temp, $cache_path)) { 
+                unlink($cache_path); 
+                rename($temp, $cache_path); 
             } 
    
-            chmod($file_path, $this->params['write_perms']); 
-   
-            return $size;
+            chmod($cache_path, $this->params['write_perms']); 
+
+            return $cache_size;
+        }
+
+        /**
+         * Clear a cache path
+         *
+         * @param  string $cache_path
+         * @return void
+         */
+        public function clear_cache($cache_path)
+        {
+            if ($this->params['apc_enabled']) {
+                apc_delete($cache_path);
+            } else {
+                @unlink($cache_path);
+            }
         }
 
         /**
@@ -351,9 +402,11 @@ namespace Forward
         public function result_collections($result)
         {
             // Combine $collection and $expanded headers
-            $collections = array($result['$collection']);
+            $collections = isset($result['$collection'])
+                ? array($result['$collection'])
+                : array();
 
-            if (is_array($result['$expanded'])) {
+            if (isset($result['$expanded'])) {
                 foreach ($result['$expanded'] as $expanded_collection) {
                     $collections[] = $expanded_collection;
                 }

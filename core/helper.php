@@ -295,17 +295,23 @@ class Helper
                 $request = Template::engine()->get('request');
 
                 if (is_array($params)) {
-                    $redirect = $params['redirect'] ?: ($params['refresh'] ? $_SERVER['REQUEST_URI'] : null);
-
-                    if ($params['error']) {
+                    $redirect = null;
+                    if (isset($params['redirect'])) {
+                        if (isset($params['refresh'])) {
+                            $redirect = $_SERVER['REQUEST_URI'];
+                        } else {
+                            $redirect = $params['redirect'];
+                        }
+                    }
+                    if (isset($params['error'])) {
                         Request::message('error', $params['error'], $redirect);
                         $request['errors'][] = $params['error'];
                     }
-                    if ($params['warning']) {
+                    if (isset($params['warning'])) {
                         Request::message('warning', $params['warn'], $redirect);
                         $request['warnings'][] = $params['warn'];
                     }
-                    if ($params['notice']) {
+                    if (isset($params['notice'])) {
                         Request::message('notice', $params['notice'], $redirect);
                         $request['notices'][] = $params['notice'];
                     }
@@ -625,6 +631,7 @@ class Helper
                     return false;
                 }
 
+                $if_many = 0;
                 if (isset($params['if_many'])) {
                     $if_many = (is_array($params['if_many']))
                         ? count($params['if_many'])
@@ -752,7 +759,7 @@ class Helper
              */
             'not_empty' => function($value)
             {
-                return $value || $value === "0";
+                return $value || $value === "0" || $value === 0;
             },
 
             /**

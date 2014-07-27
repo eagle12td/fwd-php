@@ -68,7 +68,7 @@ class Request
         }
 
         // Handle request redirects
-        if ($request['redirect']) {
+        if (isset($request['redirect'])) {
             self::redirect($request['redirect']);
         }
 
@@ -244,10 +244,10 @@ class Request
         $uri_parts = parse_url($url ?: $_SERVER['REQUEST_URI']);
 
         $default_parts = array(
-            'scheme' => $_SERVER['HTTPS'] ? 'https' : 'http',
+            'scheme' => isset($_SERVER['HTTPS']) ? 'https' : 'http',
             'host' => $_SERVER['HTTP_HOST'],
             'path' => $uri_parts['path'],
-            'query' => $uri_parts['query']
+            'query' => isset($uri_parts['query']) ? $uri_parts['query'] : null
         );
 
         $parts = array_merge($default_parts, $parts);
@@ -280,14 +280,15 @@ class Request
 
         // URL and URI
         $request['url'] = $url;
-        $request['uri'] = $request['path'].($request['query'] ? '?'.$request['query'] : '');
+        $request['uri'] = $request['path'].(isset($request['query']) ? '?'.$request['query'] : '');
 
         // Method
         $request['method'] = strtolower($_SERVER['REQUEST_METHOD']);
         $request['get'] = $request['method'] == 'get';
         $request['post'] = $request['method'] == 'post';
         $request['ajax'] = (
-            $_SERVER["HTTP_X_REQUESTED_WITH"] == 'XMLHttpRequest'
+            (isset($_SERVER["HTTP_X_REQUESTED_WITH"])
+                && $_SERVER["HTTP_X_REQUESTED_WITH"] == 'XMLHttpRequest')
             || isset($_REQUEST['__ajax'])
         ) ? true : false;
 
@@ -302,21 +303,18 @@ class Request
      * @param  closure $handler
      * @return void
      */
-    public static function bind($method, $match, $handler)
+    public static function bind($method, $match, $handler = null)
     {
+        if (is_callable($match)) {
+            $handler = $match;
+            $match = null;
+        }
+        if (!is_callable($handler)) {
+            throw new \Exception('Bind handler is not a function');
+        }
         Event::bind("request.{$method}", function() use($method, $match, $handler)
         {
-            if (is_callable($match)) {
-                $handler = $match;
-                $result = call_user_func_array($handler, func_get_args());
-                if (!is_null($result)) {
-                    return $result;
-                }
-            } else if (is_array($match)) {
-                if (!is_callable($handler)) {
-                    throw new \Exception('Bind handler is not a function');
-                }
-
+            if (is_array($match)) {
                 // Filter binding based on conditional match
                 $request = Request::route(Request::current(), array(
                     'match' => $match,
@@ -327,6 +325,11 @@ class Request
                     if (!is_null($result)) {
                         return $result;
                     }
+                }
+            } else {
+                $result = call_user_func_array($handler, func_get_args());
+                if (!is_null($result)) {
+                    return $result;
                 }
             }
         });
@@ -340,8 +343,7 @@ class Request
      */
     public static function setup()
     {
-        error_reporting(E_ERROR | E_PARSE);
-        set_error_handler('\\Forward\\Util\error_handler', E_ALL);
+        set_error_handler('\\Forward\\Util\error_handler', error_reporting());
         set_exception_handler('\\Forward\\Util\exception_handler');
         spl_autoload_register('\\Forward\\Util\autoload');
 
@@ -379,10 +381,10 @@ class Request
         $params = Event::trigger('request', 'remote', $params);
         $params = Event::trigger('client', 'request', $params);
 
-        if (is_array($result)) {
-            $method = $result['method'] ?: $method;
-            $url = $result['url'] ?: $url;
-            $data = $result['data'] ?: $data;
+        if (is_array($params)) {
+            $method = $params['method'] ?: $method;
+            $url = $params['url'] ?: $url;
+            $data = $params['data'] ?: $data;
         }
 
         try {
@@ -422,47 +424,56 @@ class Request
             'clients'
         ));
 
-        $request_client = self::$vars['client'] ?: array();
-        if (is_string($request_client)) {
-            $request_client = $config['clients'][$request_client];
+        $request_client = array();
+        if (isset(self::$vars['client'])) {
+            $request_client = self::$vars['client'];
+            if (is_string($request_client)) {
+                $request_client = isset($config['clients'][$request_client])
+                    ? $config['clients'][$request_client]
+                    : array();
+            }
         }
-        $config_client = $config['client'] ?: array();
-        if (is_string($client)) {
-            $client_config = $config['clients'][$config_client];
+        $config_client = array();
+        if (isset($config['client'])) {
+            $config_client = $config['client'];
+            if (is_string($config_client)) {
+                $config_client = isset($config['clients'][$config_client])
+                    ? $config['clients'][$config_client]
+                    : array();
+            }
         }
         $client = array_merge(
-            (array)$client_config,
-            (array)$request_client,
-            (array)$config['client']
+            $config_client,
+            $request_client
         );
         $client_config = array(
-            'id' => $client['id'] ?: $config['client_id'],
-            'key' => $client['key'] ?: $config['client_key'],
-            'host' => $client['host'] ?: $config['client_host'],
-            'port' => $client['port'] ?: $config['client_port'],
-            'clear' => $client['clear'] ?: $config['client_clear'],
-            'clear_port' => $client['clear_port'] ?: $config['client_clear_port'],
-            'version' => $client['version'] ?: $config['client_version'],
-            'api' => $client['api'] ?: $config['client_api'],
-            'proxy' => $client['proxy'] ?: $config['client_proxy'],
+            'id' => isset($client['id']) ? $client['id'] : $config['client_id'],
+            'key' => isset($client['key']) ? $client['key'] : $config['client_key'],
+            'host' => isset($client['host']) ? $client['host'] : $config['client_host'],
+            'port' => isset($client['port']) ? $client['port'] : $config['client_port'],
+            'clear' => isset($client['clear']) ? $client['clear'] : $config['client_clear'],
+            'clear_port' => isset($client['clear_port']) ? $client['clear_port'] : $config['client_clear_port'],
+            'version' => isset($client['version']) ? $client['version'] : $config['client_version'],
+            'api' => isset($client['api']) ? $client['api'] : $config['client_api'],
+            'proxy' => isset($client['proxy']) ? $client['proxy'] : $config['client_proxy'],
             // Following options may be set 'false', other they default truthy
-            'verify_cert' => $client['verify_cert'] !== null
+            'verify_cert' => isset($client['verify_cert'])
                 ? $client['verify_cert']: $config['client_verify_cert'],
-            'rescue' => $client['rescue'] !== null
+            'rescue' => isset($client['rescue'])
                 ? $client['rescue'] : $config['client_rescue'],
-            'cache' => $client['cache'] !== null
+            'cache' => isset($client['cache'])
                 ? $client['cache'] : $config['client_cache'],
-            'session' => $client['session'] !== null
+            'session' => isset($client['session'])
                 ? $client['session'] : $config['client_session']
         );
-        if ($client_config['cache'] === null) {
+        if (!isset($client_config['cache'])) {
             $client_config['cache'] = true; // Default cache enabled
         }
-        if ($client_config['cache']) {
+        if (isset($client_config['cache'])) {
             if (is_bool($client_config['cache'])) {
                 $client_config['cache'] = array();
             }
-            if (!$client_config['cache']['path']) {
+            if (!isset($client_config['cache']['path'])) {
                 $client_config['cache']['path'] = Config::path('core', '/cache');
             }
         }
@@ -542,23 +553,27 @@ class Request
      */
     public static function message($severity, $message, $redirect = null)
     {
+        $message_type = $severity;
         $severity_map = array(
             'notice' => 'notices',
             'warning' => 'warnings',
             'error' => 'errors'
         );
-        $msg_type = $severity_map[$severity] ?: $severity;
-
-        if (!in_array($msg_type, array('notices', 'warnings', 'errors'))) {
-            return false;
+        if (isset($severity_map[$severity])) {
+            $message_type = $severity_map[$severity];
         }
-
+        if (!in_array($message_type, array('notices', 'warnings', 'errors'))) {
+            throw new Exception("Message type not valid '{$message_type}'");
+        }
+        if (!isset(self::$vars[$message_type])) {
+            self::$vars[$message_type] = array();
+        }
         if (is_string($message)) {
-            self::$vars[$msg_type] = array_merge((array)self::$vars[$msg_type], array($message));
-        } elseif (is_array($message)) {
-            self::$vars[$msg_type] = array_merge((array)self::$vars[$msg_type], $message);
+            $message = array($message);
         }
-
+        foreach ($message as $msg) {
+            array_push(self::$vars[$message_type], $msg);
+        }
         if ($redirect) {
             self::redirect($redirect);
         }
@@ -572,13 +587,13 @@ class Request
     public static function persist()
     {
         $messages = array();
-        if (self::$vars['errors']) {
+        if (isset(self::$vars['errors'])) {
             $messages['errors'] = self::$vars['errors'];
         }
-        if (self::$vars['warnings']) {
+        if (isset(self::$vars['warnings'])) {
             $messages['warnings'] = self::$vars['warnings'];
         }
-        if (self::$vars['notices']) {
+        if (isset(self::$vars['notices'])) {
             $messages['notices'] = self::$vars['notices'];
         }
         if (!empty($messages)) {
@@ -595,11 +610,11 @@ class Request
     public static function restore()
     {
         $session = self::session();
-        if ($session['__messages']) {
+        if (isset($session['__messages'])) {
             foreach ((array)$session['__messages'] as $severity => $message) {
                 self::message($severity, $message);
             }
-            $session['__messages'] = null;
+            unset($session['__messages']);
         }
     }
 }

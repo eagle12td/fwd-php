@@ -115,7 +115,8 @@ class Plugin
     public static function helper($name, $function)
     {
         if ($plugin = self::$discover) {
-            if (self::$registry[$plugin]['helpers'][$name] !== false) {
+            if (!isset(self::$registry[$plugin]['helpers'][$name])
+                || self::$registry[$plugin]['helpers'][$name] !== false) {
                 self::$registry[$plugin]['helpers'][$name] = true;
                 Helper::register($name, $function);
             }

@@ -34,10 +34,10 @@ namespace Forward
          */
         function __construct($result, $client = null)
         {
-            $this->count = $result['$data']['count'];
-            $this->pages = $result['$data']['pages'];
-            $this->page = $result['$data']['page'];
-            $result['$data'] = $result['$data']['results'];
+            $this->count = isset($result['$data']['count']) ? $result['$data']['count'] : null;
+            $this->pages = isset($result['$data']['pages']) ? $result['$data']['pages'] : null;
+            $this->page = isset($result['$data']['page']) ? $result['$data']['page'] : null;
+            $result['$data'] = isset($result['$data']['results']) ? $result['$data']['results'] : null;
 
             $result = $this->build_records($result);
 
@@ -58,10 +58,13 @@ namespace Forward
                 $url = substr(0, $pos);
             }
 
-            $url = "/".trim($url, "/");
-            foreach ((array)$result['$data'] as $key => $record) {
-                $record_url = $url."/".$record['id'];
-                self::$links[$record_url] = &self::$links[$parent_url];
+            $url = '/'.trim($url, '/');
+            foreach ($result['$data'] as $key => $record) {
+                $record_url = $url;
+                if (isset($record['id'])) {
+                    $record_url .= '/'.$record['id'];
+                }
+                self::$client_links[$record_url] = &self::$client_links[$parent_url];
                 $result['$data'][$key] = new Record(array(
                     '$url' => $record_url,
                     '$data' => $record
@@ -124,7 +127,7 @@ namespace Forward
             foreach ((array)$this->records() as $key => $record) {
                 if ($record instanceof Resource) {
                     $dump['results'][$key] = $record->data();
-                    foreach ($record->links() as $field => $link) {
+                    foreach ($record->links as $field => $link) {
                         if ($depth < 1) {
                             try {
                                 $link_record = $record[$field];
@@ -141,7 +144,7 @@ namespace Forward
                     }
                 }
             }
-            if ($dump['results'] && $links = $this->links()) {
+            if ($dump['results'] && $links = $this->links) {
                 $dump['$links'] = $this->dump_links($links);
             }
             if ($dump['count'] > 0) {

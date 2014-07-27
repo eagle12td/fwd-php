@@ -28,11 +28,12 @@ class Template
         $request['template'] = $request['template'] ?: Config::get('defaults.template', 'default');
         $config = self::config($request['template']);
 
-        if ($config['extends']) {
+        if (isset($config['extends'])) {
             $request = self::route_extended($request, $config['extends']);
         }
-
-        $request = Request::route($request, $config['routes']);
+        if (!empty($config['routes'])) {
+            $request = Request::route($request, $config['routes']);
+        }
         $request['template_path'] = Config::path('templates', $request['template']);
 
         return $request;
@@ -100,11 +101,14 @@ class Template
      */
     public static function load($request)
     {
-        if (!$request['template_path']) {
+        if (!isset($request['template_path'])) {
             return;
         }
-
-        foreach (array($request['template_path'], $request['extend_template_path']) as $template_path) {
+        $paths = array($request['template_path']);
+        if (isset($request['extend_template_path'])) {
+            array_push($paths, $request['extend_template_path']);
+        }
+        foreach ($paths as $template_path) {
             $plugin_path = $template_path.'/plugins/';
             if (is_dir($plugin_path)) {
                 Plugin::load($plugin_path);
@@ -172,7 +176,7 @@ class TemplateEngine
      * @return string
      */
     public function render($file_path, &$vars, $return_vars = false) {
-        $template = $this->create_template($file_path, &$vars);
+        $template = $this->create_template($file_path, $vars);
 
         // Raw php or smarty template
         if (substr($file_path, -4) == '.php') {
@@ -242,7 +246,7 @@ class TemplateEngine
 
         $this->set($parent_vars);
 
-        if (is_array($vars)) {
+        if ((array)$vars === $vars) {
             $this->set($vars);
         }
 
@@ -290,7 +294,7 @@ class TemplateEngine
      */
     public function result($value = null)
     {
-        if (is_array($value)) {
+        if ((array)$value === $value) {
             foreach ($value as $key => $val) {
                 $this->set($key, $val);
             }
@@ -319,14 +323,12 @@ class TemplateEngine
      */
     public function set($key, &$value = null)
     {
-        if (is_array($key)) {
-            foreach ($key as $k => &$val) {
-                if ($this->templates[0]) {
+        if (isset($this->templates[0])) {
+            if ((array)$key === $key) {
+                foreach ($key as $k => &$val) {
                     $this->templates[0]->assign($k, $val);
                 }
-            }
-        } else {
-            if ($this->templates[0]) {
+            } else {
                 $this->templates[0]->assign($key, $value);
             }
         }
@@ -340,7 +342,7 @@ class TemplateEngine
      */
     public function set_global($key, &$value = null)
     {
-        if (is_array($key)) {
+        if ((array)$key === $key) {
             foreach ($key as $k => &$val) {
                 $this->global_vars[$k] = $val;
             }
@@ -359,7 +361,7 @@ class TemplateEngine
      */
     public function get($key = null)
     {
-        if ($this->templates[0]) {
+        if (isset($this->templates[0])) {
             if ($key) {
                 return ($this->templates[0]->tpl_vars)
                     ? $this->templates[0]->tpl_vars[$key]->value
@@ -625,7 +627,7 @@ class TemplateEngine
                 'type' => 'compiler',
                 'handler' => function ($args, $smarty)
                 {
-                    if ($args[0] !== null) {
+                    if (isset($args[0])) {
                         // Save result to global context for render() to extract.
                         return '<?php $GLOBALS[\'fwd_template_result\'] = '.$args[0].'; return; ?>';
                     } else {
@@ -652,12 +654,14 @@ function parse_smarty_compile_args($args, $options = null)
     foreach ((array)$args as $key => $val) {
         if (is_numeric($key)) {
             // Flag?
-            if (($flag = preg_replace('/[^a-z0-9\_\-\.]/i', '', $val)) && in_array($flag, (array)$options['flags'])) {
+            if (isset($options['flags'])
+                && $flag = preg_replace('/[^a-z0-9\_\-\.]/i', '', $val)
+                && in_array($flag, $options['flags'])) {
                 $key = $flag;
                 $val = $val[0] == "!" ? false : true;
             }
             // Short tag
-            else if ($options['tags'][$tagged]) {
+            else if (isset($options['tags'][$tagged])) {
                 $key = $options['tags'][$tagged++];
             } else {
                 $key = $count++;
@@ -678,15 +682,16 @@ function parse_smarty_compile_args($args, $options = null)
  */
 function serialize_to_php($var)
 {
-    if (is_array($var)) {
+    if ((array)$var === $var) {
+        $output = '';
         $count = 0;
         foreach ($var as $key => $val) {
             $key = $key ?: $count++;
             $key = is_numeric($key) ? $key : '"'.$key.'"';
             $output .= ($output ? ', ' : '')."$key => ".serialize_to_php($val);
         }
-        return "array($output)";
-    } else if (is_bool($var)) {
+        return "array({$output})";
+    } else if ((bool)$var === $var) {
         return $var ? "true" : "false";
     } else {
         return $var;
