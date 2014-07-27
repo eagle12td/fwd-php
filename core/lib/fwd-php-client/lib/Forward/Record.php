@@ -31,7 +31,7 @@ namespace Forward
                 return;
             }
             $link_result = null;
-            if ($this->links && (isset($this->links[$field]) || $field === '$links')) {
+            if ($this->links && (isset($this->links[$field]['url']) || $field === '$links')) {
                 $link_result = $this->offset_get_link($field);
             }
             if ($link_result !== null) {
@@ -60,7 +60,7 @@ namespace Forward
                 }
                 return $links;
             }
-            if (isset($header_links[$field])) {
+            if (isset($header_links[$field]['url'])) {
                 if (!array_key_exists($field, $this->link_data)) {
                     $data = $this->data();
                     if (isset($data[$field])) {

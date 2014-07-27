@@ -2,26 +2,38 @@
 
 class ApiController
 {
+    public $index;
+    public $method;
+    public $url;
+    public $rel_url;
+
     /**
      * Default API console index
      */
     public function index()
     {
         $options = array();
+        $result = null;
+        $url = null;
+        $timing = null;
 
-        if ($this->params['url']) {
+        $this->method = isset($this->params['method']) ? $this->params['method'] : null;
+        $this->url = isset($this->params['url']) ? $this->params['url'] : null;
+        $this->rel_url = isset($this->params['rel_url']) ? $this->params['rel_url'] : null;
+
+        if ($this->url) {
             $start = microtime(true);
-            $relative_url = $this->params['rel_url'];
-            if ($relative_url !== "" && $relative_url[0] !== "/") {
+            $relative_url = $this->rel_url;
+            if ($relative_url && $relative_url[0] !== '/') {
                 $relative_url = "/{$relative_url}";
             }
-            $url = "{$this->params['url']}{$relative_url}";
+            $url = "{$this->url}{$relative_url}";
             try {
                 if ($url === '/:options') {
                     $options = $this->get_options_sorted();
                     $result = $options;
                 } else {
-                    $result = request($this->params['method'] ?: "GET", $url);
+                    $result = request($this->method ?: "GET", $url);
                     $result = $result instanceof \Forward\Resource
                         ? $result->dump(true, false) : $result;
                 }
@@ -29,15 +41,18 @@ class ApiController
                 $result = array('$error' => $e->getMessage());
             }
             $end = microtime(true);
+            $timing = ($end - $start);
         }
 
-        if (!$options) $options = $this->get_options_sorted();
+        if (!$options) {
+            $options = $this->get_options_sorted();
+        }
 
         $this->index = array(
             'options' => $options,
             'result' => $result,
             'url' => $url,
-            'timing' => ($end - $start)
+            'timing' => $timing
         );
     }
 
