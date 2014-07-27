@@ -121,11 +121,12 @@ class Request
             }
 
             // Merge route values with request
-            if (is_array($route['request'])) {
-                $request = array_merge($request, $route['request']);
+            if (isset($route['request'])) {
+                $request = array_merge($request, (array)$route['request']);
             }
 
-            if ($request['redirect'] || $request['break']) {
+            if ((isset($request['redirect']) && $request['redirect'])
+                || (isset($request['break']) && $request['break'])) {
                 break;
             }
         }
@@ -189,21 +190,23 @@ class Request
                 }
             }
 
-
-            $handle_syntax_error = function($errno, $errstr, $errfile, $errline, array $errcontext) use($test_val, $expr)
+            $handle_syntax_error = function($errno, $errstr, $errfile, $errline, array $errcontext)
+            use($test_val, $expr)
             {
                 Util\error_handler($errno, "Invalid route expression '".$test_val."' ({$expr})");
                 restore_error_handler();
             };
             set_error_handler($handle_syntax_error);
 
+            $matched = false;
             try {
                 if (preg_match("/{$expr}/", $request_val)) {
-                    return true;
+                    $matched = true;
                 }
             }
             catch (\Exception $e) {}
             restore_error_handler();
+            return $matched;
         }
 
         return false;
