@@ -151,14 +151,18 @@ function error_handler($code, $message, $file = "", $line = 0, $globals = null, 
                 <li><b>Call Stack:</b>
                     <div class="callStack">
                         <ol>
-
-                        <?php foreach ($backtrace as $event): if ($event['function'] == 'trigger_error') continue; ?>
+                        <?php
+                            foreach ($backtrace as $event) {
+                                if ($event['function'] == 'trigger_error' || !isset($event['file'])) {
+                                    continue;
+                                }
+                        ?>
                             <li>
-                                <i><?php echo $event['function']; ?>()</i> in
-                                <?php echo $event['file']; ?> on line
-                                <i><b><?php echo $event['line']; ?></b></i>
+                                <i><?php echo $event['function']; ?>()</i>
+                                in <?php echo $event['file']; ?>
+                                on line <i><b><?php echo $event['line']; ?></b></i>
                             </li>
-                        <?php endforeach; ?>
+                        <?php } ?>
                         </ol>
                     </div>
                 </li>
