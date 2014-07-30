@@ -41,6 +41,18 @@ class Session extends Util\ArrayInterface
     }
 
     /**
+     * Set the value of a session parameter using array notation
+     *
+     * @param  string $key
+     * @param  mixed $val
+     */
+    public function offsetSet($key, $val)
+    {
+        $_SESSION[$key] = $val;
+        return parent::offsetSet($key, $val);
+    }
+
+    /**
      * Get the value of a session parameter using path notation
      *
      * @param  string $path
@@ -100,11 +112,12 @@ class Session extends Util\ArrayInterface
     {
         if (session_id() != '') {
             return;
-        } 
-        if (($client = Request::client_config()) && $client['session'] === false) {
+        }
+        $client = Request::client_config();
+        if (isset($client['session']) && $client['session'] === false) {
             return session_start(); // Local session only
         }
-        if (!$_SERVER['HTTP_HOST']) {
+        if (!isset($_SERVER['HTTP_HOST'])) {
             $_SESSION = array();
             return;
         }
