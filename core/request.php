@@ -473,12 +473,12 @@ class Request
             $client_config['cache'] = true; // Default cache enabled
         }
         if (isset($client_config['cache'])) {
-            if (is_bool($client_config['cache'])) {
+            if (is_bool($client_config['cache']) && $client_config['cache']) {
                 $client_config['cache'] = array();
             }
-            if (!isset($client_config['cache']['path'])) {
-                $client_config['cache']['path'] = Config::path('core', '/cache');
-            }
+        }
+        if (!isset($client_config['cache']['path']) && is_array($client_config['cache'])) {
+            $client_config['cache']['path'] = Config::path('core', '/cache');
         }
 
         return $client_config;
