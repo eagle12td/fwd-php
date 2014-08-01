@@ -73,6 +73,22 @@ namespace Forward
 
             return $result;
         }
+
+        /**
+         * Check if collection field value exists
+         *
+         * @param  string $index
+         * @return bool
+         */
+        public function offsetExists($index)
+        {
+            if (!$exists = parent::offsetExists($index)) {
+                if (isset($this->{$index})) {
+                    return true;
+                }
+            }
+            return $exists;
+        }
         
         /**
          * Get collection record or meta data

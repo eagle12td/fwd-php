@@ -195,7 +195,7 @@ namespace Forward
             if (!$e) {
                 return;
             }
-            if ($this->is_rescue) {
+            if (isset($this->params['is_rescue'])) {
                 // TODO: cache exceptions until rescue server responds
                 return;
             }
@@ -207,7 +207,7 @@ namespace Forward
                         $this->params['client_key'],
                         $this->params['rescue']
                     );
-                    $this->rescue->is_rescue = true;
+                    $this->rescue->params(array('is_rescue' => true));
                 }
 
                 $last_request_id = $this->server->request_id()

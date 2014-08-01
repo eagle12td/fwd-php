@@ -45,7 +45,7 @@ namespace Forward
          * @param  mixed $result
          * @param  Forward\Client $client
          */
-        function __construct($result, $client = null)
+        public function __construct($result, $client = null)
         {
             if ($client) {
                 self::$client = $client;
@@ -87,7 +87,7 @@ namespace Forward
          *
          * @return string
          */
-        function __toString()
+        public function __toString()
         {
             return (string)$this->url;
         }
@@ -97,7 +97,7 @@ namespace Forward
          *
          * @return mixed
          */
-        function url()
+        public function url()
         {
             return $this->url;
         }
@@ -108,7 +108,7 @@ namespace Forward
          * @param  bool $raw
          * @return mixed
          */
-        function data($raw = false)
+        public function data($raw = false)
         {
             $data = $this->getArrayCopy();
 
@@ -133,7 +133,7 @@ namespace Forward
          *
          * @return Forward\Client
          */
-        function client()
+        public function client()
         {
             return self::$client;
         }
@@ -143,7 +143,7 @@ namespace Forward
          *
          * @return array
          */
-        function &links()
+        public function & links()
         {
             if (!isset(self::$client_links[$this->url])) {
                 self::$client_links[$this->url] = array();
@@ -156,7 +156,7 @@ namespace Forward
          *
          * @return mixed
          */
-        function dump($return = false)
+        public function dump($return = false)
         {
             return print_r($this->getArrayCopy(), $return);
         }
@@ -166,7 +166,7 @@ namespace Forward
          *
          * @param  array $links
          */
-        function dump_links($links = null)
+        public function dump_links($links = null)
         {
             if ($links === null) {
                 $links = $this->links;
