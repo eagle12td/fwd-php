@@ -104,7 +104,7 @@ namespace Forward
                 'port' => isset($options['port']) ? $options['port'] : self::$default_port,
                 'clear' => isset($options['clear']) ? $options['clear'] : false,
                 'clear_port' => isset($options['clear_port']) ? $options['clear_port'] : self::$default_clear_port,
-                'verify_cert' => isset($options['vericy_cert']) ? $options['verify_cert'] : true,
+                'verify_cert' => isset($options['verify_cert']) ? $options['verify_cert'] : true,
                 'version' => isset($options['version']) ? $options['version'] : 1,
                 'session' =>isset($options['session']) ? $options['session'] : null,
                 'rescue' => isset($options['rescue']) ? $options['rescue'] : null,

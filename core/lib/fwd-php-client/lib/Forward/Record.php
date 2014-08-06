@@ -84,7 +84,8 @@ namespace Forward
                             $this->link_data[$field] = Resource::instance(array(
                                 '$url' => $this->link_url($field),
                                 '$data' => $data[$field],
-                                '$links' => $header_links[$field]['links']
+                                '$links' => isset($header_links[$field]['links'])
+                                    ? $header_links[$field]['links'] : null
                             ));
                         } else {
                             $this->link_data[$field] = $data[$field];
