@@ -781,7 +781,7 @@ function eval_conditions($conditions, $value = null)
                     break;
                 }
             } else {
-                $match = eval_conditions($compare, $value[$key]);
+                $match = eval_conditions($compare, isset($value[$key]) ? $value[$key] : null);
             }
             if (!$match) {
                 break;
