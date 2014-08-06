@@ -104,19 +104,21 @@ class Request
      */
     public static function route($request, $routes = null)
     {
-        if (empty($routes)) {
+        if (empty($routes) || !is_array($routes)) {
             return $request;
         }
 
-        foreach ((array)$routes as $key => $route) {
+        foreach ($routes as $key => $route) {
             $route = self::route_format($key, $route);
 
-            foreach ((array)$route['match'] as $match_key => $match_value) {
-                if (!$request[$match_key]) {
-                    continue;
-                }
-                if (!self::route_match($match_value, $request[$match_key])) {
-                    continue(2);
+            if (isset($route['match'])) {
+                foreach ((array)$route['match'] as $match_key => $match_value) {
+                    if (!isset($request[$match_key])) {
+                        continue;
+                    }
+                    if (!self::route_match($match_value, $request[$match_key])) {
+                        continue(2);
+                    }
                 }
             }
 
@@ -461,7 +463,7 @@ class Request
             'proxy' => isset($client['proxy']) ? $client['proxy'] : $config['client_proxy'],
             // Following options may be set 'false', other they default truthy
             'verify_cert' => isset($client['verify_cert'])
-                ? $client['verify_cert']: $config['client_verify_cert'],
+                ? $client['verify_cert'] : $config['client_verify_cert'],
             'rescue' => isset($client['rescue'])
                 ? $client['rescue'] : $config['client_rescue'],
             'cache' => isset($client['cache'])
@@ -469,13 +471,19 @@ class Request
             'session' => isset($client['session'])
                 ? $client['session'] : $config['client_session']
         );
-        if (!isset($client_config['cache'])) {
-            $client_config['cache'] = true; // Default cache enabled
+        // Get client id and key from ENV if not explicit
+        if (empty($client_config['id'])) {
+            $client_config['id'] = getenv('client_id');
         }
-        if (isset($client_config['cache'])) {
-            if (is_bool($client_config['cache']) && $client_config['cache']) {
-                $client_config['cache'] = array();
-            }
+        if (empty($client_config['key'])) {
+            $client_config['key'] = getenv('client_key');
+        }
+        // Default cache enabled
+        if (!isset($client_config['cache'])) {
+            $client_config['cache'] = true;
+        }
+        if (is_bool($client_config['cache']) && $client_config['cache']) {
+            $client_config['cache'] = array();
         }
         if (!isset($client_config['cache']['path']) && is_array($client_config['cache'])) {
             $client_config['cache']['path'] = Config::path('core', '/cache');
