@@ -2,40 +2,58 @@
 
 return array(
 
-	/* -----------------------------------------------------
-	 * Default API client
-	 * -------------------------------------------------- */
+    /* -----------------------------------------------------
+     * Default API client
+     * -------------------------------------------------- */
 
-	'client' => array(
-		'id' => 		'' ?: getenv('client_id'),
-		'client_key' => '' ?: getenv('client_key')
-	),
+    'client' => array(
+        'id' => '',
+        'key' => ''
+    ),
 
-	/* -----------------------------------------------------
-	 * Named API clients
-	 * -------------------------------------------------- */
+    /* -----------------------------------------------------
+     * Named API clients
+     * -------------------------------------------------- */
 
-	'clients' => array(
+    'clients' => array(
 
-		// Note: Use with routes for multi-client installs
-		'other-client-name' => array(
-			'client_id' => "insert_other_client_id_here",
-			'client_key' => "insert_other_client_key_here"
-		),
-	),
+        // Example: Usage with routes for multi-client installs
+        'client-one' => array(
+            'id' => '',
+            'key' => ''
+        ),
+        'client-two' => array(
+            'id' => '',
+            'key' => ''
+        ),
+        'client-three' => array(
+            'id' => '',
+            'key' => ''
+        )
+    ),
 
 
-	/* -----------------------------------------------------
-	 * Route settings
-	 * -------------------------------------------------- */
+    /* -----------------------------------------------------
+     * Route settings
+     * -------------------------------------------------- */
 
-	'routes' => array(
+    'routes' => array(
 
-		// Default route
-		array(
-			'request' => array(
-				'template' => 'default'
-			)
-		)
-	)
+        // Default route
+        array(
+            'request' => array(
+                'template' => 'default'
+            )
+        ),
+        // Example: Multi-client routing by host
+        array(
+            'match' => array(
+                'host' => '*.client-one.host.com'
+            ),
+            'request' => array(
+                'client' => 'client-one',
+                'template' => 'client-template'
+            )
+        )
+    )
 );
