@@ -68,7 +68,7 @@ namespace Forward
          * Request counter
          * @var int
          */
-        public $request_count;
+        public $request_count = 0;
 
         /**
          * Construct a connection
@@ -133,48 +133,46 @@ namespace Forward
                 throw new NetworkException("Unable to execute '{$method}' (Error: Connection closed)");
             }
 
-            $this->request_write($this->stream, $method, $args);
+            $this->request_write($method, $args);
 
-            return $this->request_response($this->stream);
+            return $this->request_response();
         }
 
         /**
          * Write a server request
          *
-         * @param  resource $stream
          * @param  string $method
          * @param  array $args
-         * @return void
          */
-        private function request_write($stream, $method, $args)
+        private function request_write($method, $args)
         {
-            $req_id = $this->request_id(array($method, $args));
-            $request = array($method, $args, $req_id);
-            fwrite($stream, json_encode($request)."\n");
+            $req_id = $this->request_id(true);
+            $request = array($req_id, $method, $args);
+            fwrite($this->stream, json_encode($request)."\n");
+            $this->request_count++;
         }
 
         /**
          * Get a server response
          *
-         * @param  resource $stream
          * @return mixed
          */
-        private function request_response($stream)
+        private function request_response()
         {
             // Block until server responds
-            if (false === ($response = fgets($stream))) {
+            if (false === ($response = fgets($this->stream))) {
                 $this->close();
                 throw new ProtocolException("Unable to read response from server");
             }
 
             if (null === ($message = json_decode(trim($response), true))) {
                 throw new ProtocolException("Unable to parse response from server ({$response})");
-            } else if (!is_array($message) || !is_array($message[0])) {
+            } else if (!is_array($message) || !is_array($message[1])) {
                 throw new ProtocolException("Invalid response from server (".json_encode($message).")");
             }
 
-            $data = $message[0];
-            $id = $message[1];
+            $id = $message[0]; // Not used since response is blocking
+            $data = $message[1];
 
             if (isset($data['$error'])) {
                 throw new ServerException((string)$data['$error']);
@@ -189,22 +187,16 @@ namespace Forward
         /**
          * Get or create a unique request identifier
          *
-         * @param  string $method
-         * @param  string $url
-         * @param  array $data
-         * @return mixed
+         * @param  bool $reset
+         * @return string
          */
-        function request_id($set_params = null)
+        function request_id($reset = false)
         {
-            if ($set_params !== null) {
-                $hash_id = openssl_random_pseudo_bytes(20);
-                $this->last_request_id = md5(
-                    serialize(array($hash_id, $set_params))
-                );
+            if ($reset) {
+                $hash_id = openssl_random_pseudo_bytes(32);
+                $this->last_request_id = md5($hash_id);
             }
-            $this->request_count = $this->request_count ?: 0;
-            $this->request_count++;
-            return $this->last_request_id.'-'.$this->request_count;
+            return $this->last_request_id;
         }
 
         /**

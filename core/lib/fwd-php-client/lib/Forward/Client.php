@@ -210,8 +210,7 @@ namespace Forward
                     $this->rescue->params(array('is_rescue' => true));
                 }
 
-                $last_request_id = $this->server->request_id()
-                    ?: $this->server->request_id($params);
+                $last_request_id = $this->server->request_id() ?: $this->server->request_id(true);
 
                 $result = $this->rescue->post("/rescue.exceptions", array(
                     'type' => end(explode('\\', get_class($e))),
@@ -298,18 +297,20 @@ namespace Forward
          */
         protected function response_data($result, $method, $url)
         {
-            if ($result['$data'] && is_array($result['$data'])) {
-                if (!isset($result['$url'])) {
-                    // Default resource url
-                    if ($method === 'post') {
-                        $url = rtrim($url, '/').'/'.$result['$data']['id'];
+            if (isset($result['$data'])) {
+                if (is_array($result['$data'])) {
+                    if (!isset($result['$url'])) {
+                        // Default resource url
+                        if ($method === 'post') {
+                            $url = rtrim($url, '/').'/'.$result['$data']['id'];
+                        }
+                        $result['$url'] = $url;
                     }
-                    $result['$url'] = $url;
+                    return Resource::instance($result, $this);
                 }
-                return Resource::instance($result, $this);
+                return $result['$data'];
             }
-
-            return $result['$data'];
+            return null;
         }
 
         /**

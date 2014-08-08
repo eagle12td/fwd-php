@@ -271,18 +271,19 @@ namespace Forward
             $invalid = array();
             $this->get_versions();
 
-            $cached = $result['$cached'];
-            foreach ((array)$cached as $collection => $ver) {
-                if (!isset($this->versions[$collection]) || $ver != $this->versions[$collection]) {
-                    $this->put_version($collection, $ver);
-                    $invalid[$collection] = true;
+            if (isset($result['$cached'])) {
+                foreach ((array)$result['$cached'] as $collection => $ver) {
+                    if (!isset($this->versions[$collection]) || $ver != $this->versions[$collection]) {
+                        $this->put_version($collection, $ver);
+                        $invalid[$collection] = true;
 
-                    // Hack to make admin.settings affect other api.settings
-                    // TODO: figure out how to do this on the server side
-                    if ($collection === 'admin.settings') {
-                        foreach ((array)$this->versions as $vcoll => $vv) {
-                            if (preg_match('/\.settings$/', $vcoll)) {
-                                $invalid[$vcoll] = true;
+                        // Hack to make admin.settings affect other api.settings
+                        // TODO: figure out how to do this on the server side
+                        if ($collection === 'admin.settings') {
+                            foreach ((array)$this->versions as $vcoll => $vv) {
+                                if (preg_match('/\.settings$/', $vcoll)) {
+                                    $invalid[$vcoll] = true;
+                                }
                             }
                         }
                     }
