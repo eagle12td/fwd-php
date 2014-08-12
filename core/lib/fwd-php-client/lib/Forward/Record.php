@@ -79,7 +79,7 @@ namespace Forward
             if (isset($header_links[$field]['url'])) {
                 if (!array_key_exists($field, $this->link_data)) {
                     $data = $this->data();
-                    if (isset($data[$field])) {
+                    if (array_key_exists($field, $data)) {
                         if (is_array($data[$field])) {
                             $this->link_data[$field] = Resource::instance(array(
                                 '$url' => $this->link_url($field),
