@@ -32,7 +32,9 @@ class Controller
      */
     public static function invoke($controllers, $params = null)
     {
-        if (!$controllers) return;
+        if (!$controllers) {
+            return;
+        }
 
         if (is_array($controllers)) {
             $was_array = true;
@@ -50,7 +52,7 @@ class Controller
                 $controller['path'] = $controller['extend']['path'];
 
                 if (!is_file($controller['path'])) {
-                    throw new \Exception('Controller not found at '.$controller['path']);
+                    throw new \Exception('Controller not found at '.($controller['path'] ?: 'undefined'));
                 }
             }
 

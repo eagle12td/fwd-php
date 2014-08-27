@@ -50,6 +50,10 @@ class View
             $view = $route_path;
             $view_output = isset($request['output']) ? $request['output'] : 'html';
         }
+        if ($view_output === 'php' || $view_output === 'tpl') {
+            $view_output = 'html';
+        }
+        // Clean view paths
         if ($view) {
             $view = '/'.ltrim($view, '/');
         }
@@ -68,8 +72,7 @@ class View
     /**
      * Find a view by testing view uri parts
      *
-     * @param  string $view
-     * @param  string template_path
+     * @param  array $request
      * @return array
      */
     private static function route_path($request)
@@ -88,53 +91,75 @@ class View
         $view_path = "";
         $view_args = array();
         $short_tested = false;
-        foreach ((array)$view_parts as $part) {
+        $index_dir_exists = is_dir("{$template_path}/views/index");
+        foreach ($view_parts as $part) {
             $test_path = '/'.implode('/', $view_parts);
 
             // Try different view paths
-            $views = array(
+            $views = array();
+            if ($view_output === 'html') {
+                array_push($views,
+                    "{$test_path}.php",
+                    "{$test_path}/index.php",
+                    $index_dir_exists ? "/index{$test_path}.php" : '',
+                    "{$test_path}.tpl",
+                    "{$test_path}/index.tpl",
+                    $index_dir_exists ? "/index{$test_path}.tpl" : ''
+                );
+            } else {
+                array_push($views,
+                    "{$test_path}.{$view_output}.php",
+                    "{$test_path}/index.{$view_output}.php",
+                    $index_dir_exists ? "/index{$test_path}.{$view_output}.php" : '',
+                    "{$test_path}.{$view_output}.tpl",
+                    "{$test_path}/index.{$view_output}.tpl",
+                    $index_dir_exists ? "/index{$test_path}.{$view_output}.tpl" : ''
+                );
+            }
+            array_push($views,
                 "{$test_path}.{$view_output}",
                 "{$test_path}/index.{$view_output}",
-                "/index{$test_path}.{$view_output}"
+                $index_dir_exists ? "/index{$test_path}.{$view_output}" : ''
             );
 
             // Try hidden paths for nested views
             if (Template::engine()->depth() > 0) {
                 $test_path_hidden = preg_replace('/\/([^\/]+)$/', '/_$1', $test_path);
                 array_push($views, "{$test_path_hidden}.{$view_output}");
-                array_push($views, "/index{$test_path_hidden}.{$view_output}");
+                if ($index_dir_exists) {
+                    array_push($views, "/index{$test_path_hidden}.{$view_output}");
+                }
             }
 
             $found = false;
             foreach ($views as $view) {
-                $view_path = $template_path.'/views'.$view;
-                // Does view file exist?
-                if (is_file($view_path) && ($view_orig ? $view_orig == $view : !$view_orig)) {
+                if (empty($view)) {
+                    continue;
+                }
+                $view_path = "{$template_path}/views{$view}";
+                if (is_file($view_path) && ($view_orig ? $view_orig === $view : !$view_orig)) {
                     $found = true;
                     break(2);
                 }
                 if ($extend_template_path) {
-                    $view_path = $extend_template_path.'/views'.$view;
-                    // Does view file exist?
-                    if (is_file($view_path) && ($view_orig ? $view_orig == $view : !$view_orig)) {
+                    $view_path = "{$extend_template_path}/views{$view}";
+                    if (is_file($view_path) && ($view_orig ? $view_orig === $view : !$view_orig)) {
                         $found = true;
                         break(2);
                     }
                 }
             }
 
-            // Short circuit in case of default view with arguments
+            // Short cut in case of default view with arguments
             if ($short_tested === false) {
                 $short_tested = true;
-                $dir_path = $template_path."/views/{$part}";
-                $file_path = "{$dir_path}.{$view_output}";
+                $dir_path = "{$template_path}/views/{$part}";
 
                 // If base path does not exist at all, skip checking all arg parts
-                if (!is_dir($dir_path) && !is_file($file_path)) {
+                if (!is_dir($dir_path)) {
                     if ($extend_template_path) {
-                        $dir_path = $extend_template_path."/views/{$part}";
-                        $file_path = "{$dir_path}.{$view_output}";
-                        if (!is_dir($dir_path) && !is_file($file_path)) {
+                        $dir_path = "{$extend_template_path}/views/{$part}";
+                        if (!is_dir($dir_path)) {
                             $view_args = $view_parts;
                             break;
                         }
@@ -153,16 +178,37 @@ class View
         // If not found, return original assumed view path
         if ($found === false) {
             // Try default view, as a last resort
-            if (is_file($template_path."/views/default.{$view_output}")) {
-                $view = "/default.{$view_output}";
-                $view_path = $template_path.'/views'.$view;
-            } else if ($extend_template_path
-                && is_file($extend_template_path."/views/default.{$view_output}")) {
-                $view = "/default.{$view_output}";
-                $view_path = $extend_template_path.'/views'.$view;
-            } else {
-                $view = $view_orig ?: $views[0];
-                $view_path = $template_path.'/views'.$view;
+            $default_views = array();
+            if ($view_output === 'html') {
+                array_push($default_views,
+                    "/default.php",
+                    "/default.tpl"
+                );
+            } else if ($view_output !== 'php') {
+                array_push($default_views,
+                    "/default.{$view_output}.php",
+                    "/default.{$view_output}.tpl"
+                );
+            }
+            array_push($default_views,
+                "/default.{$view_output}"
+            );
+            foreach ($default_views as $default_view) {
+                $default_view_path = "{$template_path}/views{$default_view}";
+                if (is_file($default_view_path)) {
+                    $view = $default_view;
+                    $view_path = $default_view_path;
+                    break;
+                } else if ($extend_template_path) {
+                    $default_view_path = "{$extend_template_path}/views{$default_view}";
+                    if (is_file($default_view_path)) {
+                        $view = $default_view;
+                        $view_path = $default_view_path;
+                        break;
+                    }
+                }
+                $view = $view_orig ?: $views[3];
+                $view_path = "{$template_path}/views{$view}";
             }
         }
 
@@ -220,27 +266,54 @@ class View
             return $content;
         }
 
+        if (!is_dir($request['template_path'].'/views/layouts/')
+            && (!isset($request['extend_template_path'])
+                || !is_dir($request['extend_template_path'].'/views/layouts/'))) {
+            return $content;
+        }
+
+
         $default = $request['ajax'] ? 'ajax' : 'default';
         $layout = isset($request['layout']) ? $request['layout'] : $default;
-        $layout_file = $layout.'.'.$request['output'];
-        $layout_path = $request['template_path'].'/views/layouts/'.$layout_file;
-        $extend_layout_path = isset($request['extend_template_path'])
-            ? $request['extend_template_path'].'/views/layouts/'.$layout_file : null;
 
-        if (!is_file($layout_path)) {
-            if (!is_file($extend_layout_path)) {
-                if ($layout != $default) {
-                    throw new \Exception("Layout not found at {$layout_path}");
-                } else {
-                    return $content;
-                }
+        // Try different layout file paths
+        $layout_files = array();
+        if ($request['output'] === 'html') {
+            array_push($layout_files,
+                "{$layout}.php",
+                "{$layout}.tpl"
+            );
+        } else {
+            array_push($layout_files,
+                "{$layout}.{$request['output']}.php",
+                "{$layout}.{$request['output']}.tpl"
+            );
+        }
+
+        $layout_found_path = null;
+        foreach ($layout_files as $layout_file) {
+            $layout_path = $request['template_path'].'/views/layouts/'.$layout_file;
+            $extend_layout_path = isset($request['extend_template_path'])
+                ? $request['extend_template_path'].'/views/layouts/'.$layout_file : null;
+            if (is_file($layout_path)) {
+                $layout_found_path = $layout_path;
+                break;
+            }
+            if (is_file($extend_layout_path)) {
+                $layout_found_path = $extend_layout_path;
+                break;
+            }
+        }
+        if (!$layout_found_path) {
+            if ($layout !== $default) {
+                throw new \Exception("Layout not found at {$layout_path}");
             } else {
-                $layout_path = $extend_layout_path;
+                return $content;
             }
         }
     
         $vars['content_for_layout'] = $content;
-        $content = Template::engine()->render($layout_path, $vars);
+        $content = Template::engine()->render($layout_found_path, $vars);
 
         return $content;
     }

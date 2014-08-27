@@ -345,13 +345,14 @@ function pluralize($string, $if_many = null)
 {
     // Conditional
     $prefix = '';
-    if ($if_many) {
-        $if_many = (is_array($if_many)) ? count($if_many) : $if_many;
-    } else if (is_numeric($string[0])) {
+    $parts = null;
+    if (is_numeric($string[0])) {
         $parts = explode(' ', $string);
-        $string = array_pop($parts);
-        $if_many = $parts[0];
-        $prefix = implode(' ', $parts).' ';
+        $if_many = array_shift($parts);
+        $string = implode(' ', $parts);
+        $prefix = $if_many.' ';
+    } else if ($if_many) {
+        $if_many = (is_array($if_many)) ? count($if_many) : $if_many;
     }
 
     if (isset($if_many) && $if_many == 1) {
@@ -376,7 +377,6 @@ function pluralize($string, $if_many = null)
             '/s$/i'=> 's',
             '/$/'=> 's'
         );
-
         $irregular = array(
             'person' => 'people',
             'man' => 'men',
@@ -384,7 +384,6 @@ function pluralize($string, $if_many = null)
             'sex' => 'sexes',
             'move' => 'moves'
         );
-
         $ignore = array(
             'equipment',
             'information',
@@ -396,7 +395,6 @@ function pluralize($string, $if_many = null)
             'sheep',
             'data'
         );
-
         $lower_string = strtolower($string);
         foreach ($ignore as $ignore_string){
             if (substr($lower_string, (-1 * strlen($ignore_string))) == $ignore_string) {
@@ -457,7 +455,6 @@ function singularize($string)
         '/(n)ews$/i' => '\\1ews',
         '/s$/i' => ''
     );
-    
     $irregular = array(
         'person' => 'people',
         'man' => 'men',
@@ -465,7 +462,6 @@ function singularize($string)
         'sex' => 'sexes',
         'move' => 'moves'
     );  
-
     $ignore = array(
         'equipment',
         'information',
@@ -478,7 +474,6 @@ function singularize($string)
         'press',
         'sms',
     );
-
     $lower_word = strtolower($word);
     foreach ($ignore as $ignore_word) {
         if (substr($lower_word, (-1 * strlen($ignore_word))) == $ignore_word) {
@@ -894,7 +889,7 @@ function image_url($params)
         }
 
         // Create orig image from file data
-        $src_image = imagecreatefromstring($src_data);
+        $src_image = @imagecreatefromstring($src_data);
         if ($src_image === false) {
             // Psuedo error
             return "#/error-unsupported-image-type-or-format-or-corrupt{$url}";

@@ -178,12 +178,16 @@ class TemplateEngine
     public function render($file_path, &$vars, $return_vars = false) {
         $template = $this->create_template($file_path, $vars);
 
-        // Raw php or smarty template
-        if (substr($file_path, -4) == '.php') {
+        // Raw php, template, or file
+        $ext = substr($file_path, -4);
+        if ($ext === '.php') {
             $content = $this->render_php($file_path);
-        } else {
+        } else if ($ext === '.tpl') {
             // Last argument is (false) to prevent var overwrites
             $content = $this->smarty->fetch($template, null, null, null, false, false);
+        } else {
+            // Plain file
+            $content = file_get_contents($file_path);
         }
 
         $all_vars = $this->get();

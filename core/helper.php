@@ -538,45 +538,70 @@ class Helper
 
                 // TODO: make ../../ pathing work
 
-                // Try public pathing
                 $view = View::resolve($view_request);
-                $view_path = $view_request['view_path'] = $view_request['template_path'].'/views'.$view['view'].'.'.$view['output'];
-
-                Template::engine()->set('request', $view_request);
-
-                if (is_file($view_path)) {
-                    $result .= Template::engine()->render($view_path, $vars, $return_vars);
+                $view_view = $view['view'];
+                $view_output = $view['output'];
+                $view_paths = array();
+                if ($view_output === 'html') {
+                    array_push($view_paths,
+                        "{$view_view}.php",
+                        "{$view_view}.tpl"
+                    );
                 } else {
-                    $extend_view_path = str_replace($view_request['template_path'], $view_request['extend_template_path'], $view_path);
-                    if (is_file($extend_view_path)) {
-                        $result .= Template::engine()->render($extend_view_path, $vars, $return_vars);
+                    array_push($view_paths,
+                        "{$view_view}.{$view_output}.php",
+                        "{$view_view}.{$view_output}.tpl"
+                    );
+                }
+                array_push($view_paths,
+                    "{$view_view}.{$view_output}"
+                );
+                foreach ($view_paths as $view_path) {
+                    $view_file_path = $view_request['view_path'] =
+                        "{$view_request['template_path']}/views{$view_path}";
+                    if (is_file($view_file_path)) {
+                        $view_file_path_found = $view_file_path;
                     } else {
-                        if (Template::engine()->depth() > 0) {
-                            // Try hidden pathing
-                            $hidden_view = preg_replace('/([^\/]+)$/', '/_$1', $view['view']);
-                            $hidden_view_path = $view_request['template_path'].'/views'.$hidden_view.'.'.$view['output'];
-
-                            if (is_file($hidden_view_path)) {
-                                    dump(13);exit;
-                                $result .= Template::engine()->render($hidden_view_path, $vars, $return_vars);
-                            } else {
-                                $extend_hidden_view_path = str_replace($view_request['template_path'], $view_request['extend_template_path'], $hidden_view_path);
-                                if (is_file($extend_hidden_view_path)) {
-                                    dump(1);exit;
-                                    $result .= Template::engine()->render($extend_hidden_view_path, $vars, $return_vars);
+                        $extend_template_path = isset($view_request['extend_template_path'])
+                            ? $view_request['extend_template_path'] : null;
+                        $extend_view_file_path = str_replace(
+                            $view_request['template_path'],
+                            $extend_template_path,
+                            $view_file_path
+                        );
+                        if (is_file($extend_view_file_path)) {
+                            $view_file_path_found = $extend_view_file_path;
+                        } else {
+                            if (Template::engine()->depth() > 0) {
+                                // Try hidden pathing
+                                $hidden_view_file_path =
+                                    preg_replace('/([^\/]+)$/', '/_$1', $view_file_path);
+                                if (is_file($hidden_view_file_path)) {
+                                    $view_file_path_found = $hidden_view_file_path;
                                 } else {
-                                    if ((!isset($params['required']) || $params['required'])) {
-                                        $tpl_path = Config::path('templates');
-                                        $parent_path = Template::engine()->templates(0)->template_resource;
-                                        $view_path = str_replace($tpl_path, '', $view_path);
-                                        $parent_path = str_replace($tpl_path, '', $parent_path);
-
-                                        throw new \Exception("View not found at {$view_path} (in {$parent_path})");
+                                    $extend_hidden_view_file_path = str_replace(
+                                        $view_request['template_path'],
+                                        $extend_template_path,
+                                        $hidden_view_file_path
+                                    );
+                                    if (is_file($extend_hidden_view_file_path)) {
+                                        $view_file_path_found = $extend_hidden_view_file_path;
                                     }
                                 }
                             }
                         }
                     }
+                }
+
+                if ($view_file_path_found) {
+                    Template::engine()->set('request', $view_request);
+                    $result = Template::engine()->render($view_file_path_found, $vars, $return_vars);
+                } else if (!isset($params['required']) || $params['required']) {
+                    $tpl_path = Config::path('templates');
+                    $parent_path = Template::engine()->templates(0)->template_resource;
+                    $view_file_path = str_replace($tpl_path, '', $view_file_path);
+                    $parent_path = str_replace($tpl_path, '', $parent_path);
+                    throw new \Exception("View not found at {$view_file_path} (in {$parent_path})");
                 }
 
                 // Merge with original request paths
@@ -610,7 +635,12 @@ class Helper
              */
             'controller' => function($params)
             {
-                return Controller::invoke($params['invoke'], $params);
+                if (is_string($params)) {
+                    $name = $params;
+                } else {
+                    $name = isset($params['invoke']) ? $params['invoke'] : null;
+                }
+                return Controller::invoke($name, $params);
             },
 
             /**
@@ -631,11 +661,9 @@ class Helper
                     return false;
                 }
 
-                $if_many = 0;
+                $if_many = null;
                 if (isset($params['if_many'])) {
-                    $if_many = (is_array($params['if_many']))
-                        ? count($params['if_many'])
-                        : $params['if_many'];
+                    $if_many = $params['if_many'];
                 }
 
                 return Util\pluralize($string, $if_many);
