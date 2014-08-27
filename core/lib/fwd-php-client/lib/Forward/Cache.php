@@ -185,7 +185,6 @@ namespace Forward
 
             $cache_content = $result;
             $cache_content['$cached'] = true;
-            $cache_content['$data'] = $cache_content['$data'];
 
             $cache_key = $this->get_key($url, $data);
             $cache_path = $this->get_path($cache_key, 'result');
@@ -289,8 +288,9 @@ namespace Forward
                     }
                 }
             }
-
-            return $this->clear_indexes($invalid);
+            if (!empty($invalid)) {
+                $this->clear_indexes($invalid);
+            }
         }
 
         /**
@@ -300,29 +300,30 @@ namespace Forward
          */
         public function clear_indexes($invalid)
         {
-            if (!empty($invalid)) {
-                $this->get_index();
-                foreach ((array)$invalid as $collection => $key) {
-                    // Clear all indexes per collection
-                    if (isset($this->indexes[$collection])) {
-                        if ($key === true) {
-                            foreach ($this->indexes[$collection] as $cache_key => $size) {
-                                $cache_path = $this->get_path($cache_key, 'result');
-                                $this->clear_cache($cache_path);
-                            }
-                            unset($this->indexes[$collection]);
-                        }
-                        // Clear a single index element by key
-                        else if ($key && isset($this->indexes[$collection][$key])) {
-                            $cache_path = $this->get_path($key, 'result');
+            if (empty($invalid)) {
+                return;
+            }
+            $this->get_index();
+            foreach ($invalid as $collection => $key) {
+                // Clear all indexes per collection
+                if (isset($this->indexes[$collection])) {
+                    if ($key === true) {
+                        foreach ($this->indexes[$collection] as $cache_key => $size) {
+                            $cache_path = $this->get_path($cache_key, 'result');
                             $this->clear_cache($cache_path);
-                            unset($this->indexes[$collection][$key]);
+                            unset($this->indexes[$collection][$cache_key]);
                         }
                     }
+                    // Clear a single index element by key
+                    else if ($key && isset($this->indexes[$collection][$key])) {
+                        $cache_path = $this->get_path($key, 'result');
+                        $this->clear_cache($cache_path);
+                        unset($this->indexes[$collection][$key]);
+                    }
                 }
-                $index_path = $this->get_path('index');
-                $this->write_cache($index_path, $this->indexes);
             }
+            $index_path = $this->get_path('index');
+            $this->write_cache($index_path, $this->indexes);
         }
 
         /**
@@ -339,7 +340,7 @@ namespace Forward
                 return apc_fetch($cache_path);
             }
 
-            return file_get_contents($cache_path);
+            return @file_get_contents($cache_path);
         }
 
         /**

@@ -374,7 +374,7 @@ namespace Forward
         }
 
         /**
-         * Call GET method
+         * Call AUTH method
          *
          * @param  string $nonce
          * @return mixed
