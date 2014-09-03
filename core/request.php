@@ -77,22 +77,114 @@ class Request
 
         // Route the view
         $request = View::route($request);
-
         if (!is_file($request['view_path'])) {
             $request = Event::trigger('request', 'notfound', $request);
             throw new \Exception("View not found at {$request['view_path']}", 404);
         }
 
+        // Merge request vars
         $request = self::$vars = array_merge((array)self::$vars, $request);
 
         // Restore persisted request vars
         Request::restore();
 
+        // Render the view
         $request = Event::trigger('request', 'render', $request);
-        $view_result = View::render($request);
-        $view_result = Event::trigger('request', 'complete', $view_result);
+        $request['result'] = View::render($request);
+        $request = Event::trigger('request', 'rendered', $request);
+        if (is_int($request['result'])) {
+            return Request::dispatch_code($request, $return);
+        }
 
-        return ($return ? $view_result : print $view_result);
+        return ($return ? $request['result'] : print $request['result']);
+    }
+
+    /**
+     * Dispatch a response by code
+     *
+     * @param  array $request
+     * @param  bool $return
+     * @return mixed
+     */
+    private static function dispatch_code($request, $return = false)
+    {
+        $code = $request['result'];
+        $code_request = $request;
+        $code_request['view'] = null;
+        $code_request['orig'] = null;
+        $code_request['path'] = '/'.$code;
+        $code_request = View::route($code_request);
+
+        // Determine header text by code
+        $recognized_codes = array(
+            200 => "OK",
+            201 => "Created",
+            202 => "Accepted",
+            203 => "Non-Authoritative Information",
+            204 => "No Content",
+            205 => "Reset Content",
+            206 => "Partial Content",
+            207 => "Multi-Status",
+            300 => "Multiple Choices",
+            301 => "Moved Permanently",
+            302 => "Found",
+            303 => "See Other",
+            304 => "Not Modified",
+            305 => "Use Proxy",
+            306 => "(Unused)",
+            307 => "Temporary Redirect",
+            308 => "Permanent Redirect",
+            400 => "Bad Request",
+            401 => "Unauthorized",
+            402 => "Payment Required",
+            403 => "Forbidden",
+            404 => "Not Found",
+            405 => "Method Not Allowed",
+            406 => "Not Acceptable",
+            407 => "Proxy Authentication Required",
+            408 => "Request Timeout",
+            409 => "Conflict",
+            410 => "Gone",
+            411 => "Length Required",
+            412 => "Precondition Failed",
+            413 => "Request Entity Too Large",
+            414 => "Request-URI Too Long",
+            415 => "Unsupported Media Type",
+            416 => "Requested Range Not Satisfiable", 
+            417 => "Expectation Failed",
+            418 => "I'm a teapot",
+            419 => "Authentication Timeout",
+            420 => "Enhance Your Calm",
+            422 => "Unprocessable Entity",
+            423 => "Locked",
+            424 => "Failed Dependency",
+            424 => "Method Failure",
+            425 => "Unordered Collection",
+            426 => "Upgrade Required",
+            428 => "Precondition Required",
+            429 => "Too Many Requests",
+            431 => "Request Header Fields Too Large",
+            500 => "Internal Server Error",
+            501 => "Not Implemented",
+            502 => "Bad Gateway",
+            503 => "Service Unavailable",
+            504 => "Gateway Timeout"
+        );
+
+        // Render view if applicable
+        if (is_file($code_request['view_path'])) {
+            $code_request = Event::trigger('request', 'render', $code_request);
+            $code_request['result'] = View::render($code_request);
+            $code_request = Event::trigger('request', 'rendered', $code_request);
+        }
+        if (isset($recognized_codes[$code])) {
+            $code_text = $recognized_codes[$code];
+            header("HTTP/1.0 {$code} {$code_text}");
+        } else {
+            throw new \Exception("Response code '{$code}' not recognized");
+        }
+
+        return ($return ? $code_request['result'] : print $code_request['result']);
     }
 
     /**

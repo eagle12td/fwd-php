@@ -195,9 +195,16 @@ class TemplateEngine
             $vars[$key] = $val;
         }
     
-        $child_vars = $this->finish_template($return_vars);
-
-        return $return_vars ? $child_vars : $content;
+        if ($return_vars) {
+            $child_vars = $this->finish_template($return_vars);
+            return $child_vars;
+        }
+        if (isset($GLOBALS['fwd_template_result'])) {
+            $result = $GLOBALS['fwd_template_result'];
+            unset($GLOBALS['fwd_template_result']);
+            return $result;
+        }
+        return $content;
     }
 
     /**
@@ -422,8 +429,10 @@ class TemplateEngine
                     ));
                     $view = $params['__view__'];
 
-                    return '<?php echo render('.$view.', '.serialize_to_php($params).') ?>'
-                        .'<?php if (isset($GLOBALS[\'fwd_template_result\'])) { return; } ?>';
+                    return '<?php $render_result = render('.$view.', '.serialize_to_php($params).'); '
+                        .' if (is_int($render_result)) { $GLOBALS[\'fwd_template_result\'] = $render_result; }'
+                        .' else { echo $render_result; } '
+                        .' if (isset($GLOBALS[\'fwd_template_result\'])) { return; } ?>';
                 }
             ),
 

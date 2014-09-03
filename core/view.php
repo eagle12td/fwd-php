@@ -73,9 +73,10 @@ class View
      * Find a view by testing view uri parts
      *
      * @param  array $request
+     * @param  bool $default
      * @return array
      */
-    private static function route_path($request)
+    private static function route_path($request, $default = true)
     {
         $view = self::resolve($request);
         $view_output = $view['output'];
@@ -178,36 +179,41 @@ class View
         // If not found, return original assumed view path
         if ($found === false) {
             // Try default view, as a last resort
-            $default_views = array();
-            if ($view_output === 'html') {
+            if ($default) {
+                $default_views = array();
+                if ($view_output === 'html') {
+                    array_push($default_views,
+                        "/default.php",
+                        "/default.tpl"
+                    );
+                } else if ($view_output !== 'php') {
+                    array_push($default_views,
+                        "/default.{$view_output}.php",
+                        "/default.{$view_output}.tpl"
+                    );
+                }
                 array_push($default_views,
-                    "/default.php",
-                    "/default.tpl"
+                    "/default.{$view_output}"
                 );
-            } else if ($view_output !== 'php') {
-                array_push($default_views,
-                    "/default.{$view_output}.php",
-                    "/default.{$view_output}.tpl"
-                );
-            }
-            array_push($default_views,
-                "/default.{$view_output}"
-            );
-            foreach ($default_views as $default_view) {
-                $default_view_path = "{$template_path}/views{$default_view}";
-                if (is_file($default_view_path)) {
-                    $view = $default_view;
-                    $view_path = $default_view_path;
-                    break;
-                } else if ($extend_template_path) {
-                    $default_view_path = "{$extend_template_path}/views{$default_view}";
+                foreach ($default_views as $default_view) {
+                    $default_view_path = "{$template_path}/views{$default_view}";
                     if (is_file($default_view_path)) {
                         $view = $default_view;
                         $view_path = $default_view_path;
                         break;
+                    } else if ($extend_template_path) {
+                        $default_view_path = "{$extend_template_path}/views{$default_view}";
+                        if (is_file($default_view_path)) {
+                            $view = $default_view;
+                            $view_path = $default_view_path;
+                            break;
+                        }
                     }
+                    $view = $view_orig ?: $views[3];
+                    $view_path = "{$template_path}/views{$view}";
                 }
-                $view = $view_orig ?: $views[3];
+            } else {
+                $view = $view_orig;
                 $view_path = "{$template_path}/views{$view}";
             }
         }
@@ -235,6 +241,9 @@ class View
         );
 
         $content = self::render_content($request, $vars);
+        if (is_int($content)) {
+            return $content;
+        }
         $content = self::render_layout($content, $request, $vars);
 
         return $content;
@@ -249,8 +258,7 @@ class View
      */
     private static function render_content($request, &$vars)
     {
-        $content = Template::engine()->render($request['view_path'], $vars);
-        return $content;
+        return Template::engine()->render($request['view_path'], $vars);
     }
 
     /**
@@ -271,7 +279,6 @@ class View
                 || !is_dir($request['extend_template_path'].'/views/layouts/'))) {
             return $content;
         }
-
 
         $default = $request['ajax'] ? 'ajax' : 'default';
         $layout = isset($request['layout']) ? $request['layout'] : $default;
@@ -313,9 +320,7 @@ class View
         }
     
         $vars['content_for_layout'] = $content;
-        $content = Template::engine()->render($layout_found_path, $vars);
-
-        return $content;
+        return Template::engine()->render($layout_found_path, $vars);
     }
 
     /**
