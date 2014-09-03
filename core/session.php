@@ -114,7 +114,7 @@ class Session extends Util\ArrayInterface
             return;
         }
         $client = Request::client_config();
-        if (isset($client['session']) && $client['session'] === false) {
+        if (!isset($client['session']) || !$client['session']) {
             return session_start(); // Local session only
         }
         if (!isset($_SERVER['HTTP_HOST'])) {

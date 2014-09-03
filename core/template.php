@@ -82,6 +82,7 @@ class Template
      */
     private static function config($template, $config_path = null)
     {
+        $config = array();
         if (!$config_path) {
             $config_path = Config::path('templates', $template.'/template.json');
         }

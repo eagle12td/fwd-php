@@ -245,7 +245,7 @@ class Request
             $route['match'] = array('uri' => $key);
         }
 
-        if ($route['match'] && !is_array($route['match'])) {
+        if (isset($route['match']) && !is_array($route['match'])) {
             $route['match'] = array('uri' => $route['match']);
         }
 

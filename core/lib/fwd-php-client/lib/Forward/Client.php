@@ -84,7 +84,7 @@ namespace Forward
                 $client_key = null;
             }
 
-            if (isset($options['session']) && $options['session'] !== false) {
+            if (isset($options['session']) && $options['session']) {
                 $options['session'] = session_id();
             }
             if (isset($options['rescue']) && $options['rescue'] !== false) {
@@ -414,7 +414,7 @@ namespace Forward
                 $creds['$ip'] = $ip_address;
             }
             if ($this->params['cache'] && !$this->cache) {
-                $client_id = $creds['$route']['client'] ?: $client_id;
+                $client_id = isset($creds['$route']['client']) ? $creds['$route']['client'] : $client_id;
                 $this->cache = new \Forward\Cache($client_id, $this->params['cache']);
                 $creds['$cached'] = $this->cache->get_versions();
             }
