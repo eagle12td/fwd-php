@@ -436,19 +436,22 @@ class Helper
              *          {$price|money} # $10.00
              *          {(-$price)|money:true} # ($10.00)
              *
-             * @param  amount Money value amount
-             * @param  format (Optional) Flag to display negative amount (default true)
-             * @param  negative (Optional) Flag to format amount with currency symbol and parantheses (default true)
-             * @param  locale (Optional) Locale flag related to 'setlocale' (default en_US.UTF-8)
+             * @param  mixed $params Params or Money value amount
+             * @param  bool $format (Optional) Flag to format amount with symbol and parantheses (default true)
+             * @param  bool $negative (Optional) Flag to display negative amount (default true)
+             * @param  string $locale (Optional) Locale flag related to 'setlocale' (default en_US.UTF-8)
             */
             'money' => function($params, $format = true, $negative = true, $locale = null)
             {
-                $amount = is_array($params) ? $params['amount'] : $params;
-                $negative = is_array($params) ? $params['negative'] ?: $negative : $negative;
-                $format = is_array($params) ? $params['format'] ?: $format : $format;
-                $locale = is_array($params) ? $params['locale'] ?: $locale : $locale;
-
-                return Util\money($amount, $negative, $format, $locale);
+                if (is_array($params)) {
+                    $amount = isset($params['amount']) ? $params['amount'] : 0;
+                    $format = isset($params['format']) ? $params['format'] : $format;
+                    $negative = isset($params['negative']) ? $params['negative'] : $negative;
+                    $locale = isset($params['locale']) ? $params['locale'] : $locale;
+                } else {
+                    $amount = $params;
+                }
+                return Util\money($amount, $format, $negative, $locale);
             },
 
             /**
