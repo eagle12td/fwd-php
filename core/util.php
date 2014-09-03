@@ -210,7 +210,7 @@ function dump ()
             ? $var->dump(true)
             : print_r($var, true);
 
-        $dump[] = $val ? $val : "NULL";
+        $dump[] = isset($val) ? $val : "NULL";
     }
 
     return $dump;
