@@ -477,7 +477,10 @@ class Helper
             'redirect' => function($params)
             {
                 if (is_array($params)) {
-                    $url = $params['to'] ?: $params['url'];
+                    $url = isset($params['to']) ? $params['to'] : null;
+                    if (!$url) {
+                        $url = isset($params['url']) ? $params['url'] : null;
+                    }
                     if (!$url && $params['refresh']) {
                         $url = $_SERVER['REQUEST_URI'];
                     }
