@@ -3,7 +3,7 @@
     Options -MultiViews
     RewriteEngine On
 
-    # Set path
+    # Set base path when installed in a sub folder i.e. /store
     RewriteBase /
 
     # Don't rewrite if file exists
