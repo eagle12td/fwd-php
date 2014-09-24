@@ -644,7 +644,8 @@ class Helper
                 if (is_string($params)) {
                     $name = $params;
                 } else {
-                    $name = isset($params['invoke']) ? $params['invoke'] : null;
+                    $name = isset($params['name']) ? $params['name'] : null;
+                    unset($params['name']);
                 }
                 return Controller::invoke($name, $params);
             },

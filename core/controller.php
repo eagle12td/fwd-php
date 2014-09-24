@@ -12,10 +12,16 @@ namespace Forward;
 class Controller
 {
     /**
-     * Index of invoked controller classes
+     * Index of loaded classes
      * @var array
      */
     public static $classes;
+
+    /**
+     * Index of loaded instances
+     * @var array
+     */
+    public static $instances;
 
     /**
      * Index of invoked method results
@@ -24,108 +30,99 @@ class Controller
     public static $results;
 
     /**
-     * Invoke a controller class/method
+     * Load controller by name before invoking a method
      *
-     * @param  string $controllers
-     * @param  array $params
-     * @return mixed
+     * @param  string $name
+     * @return array
      */
-    public static function invoke($controllers, $params = null)
+    public static function load($name)
     {
-        if (!$controllers) {
-            return;
-        }
-
-        if (is_array($controllers)) {
-            $was_array = true;
-        } else {
-            $was_array = false;
-            $controllers = array($controllers);
-        }
-        
         $vars = Template::engine()->get();
+        $controller = self::route($name, $vars['request']);
 
-        foreach ($controllers as $name) {
-            $controller = self::route($name, $vars['request']);
+        if (!is_file($controller['path'])) {
+            $controller['path'] = $controller['extend']['path'];
 
             if (!is_file($controller['path'])) {
-                $controller['path'] = $controller['extend']['path'];
-
-                if (!is_file($controller['path'])) {
-                    throw new \Exception('Controller not found at '.($controller['path'] ?: 'undefined'));
-                }
-            }
-
-            if ($was_array) {
-                $results[] = self::invoke_method($controller, $vars, $params);
-            } else {
-                $results = self::invoke_method($controller, $vars, $params);
+                throw new \Exception('Controller not found at '.($controller['path'] ?: 'undefined'));
             }
         }
 
-        Template::engine()->set_global($vars);
-
-        return $results;
-    }
-
-    /**
-     * Invoke a controller method
-     *
-     * @param  array $controller
-     * @param  array $vars
-     * @param  array $params
-     */
-    public static function invoke_method($controller, &$vars = array(), $params = array())
-    {
-        if (!self::$classes) {
+        if (!isset(self::$classes)) {
+            self::$classes = array();
             spl_autoload_register('\\Forward\\Controller::autoload');
         }
 
         $class = "{$controller['namespace']}\\{$controller['class']}";
         if (!isset(self::$classes[$class])) {
             self::$classes[$class] = $controller;
-            self::load_helpers($class); // Lazy load helpers
         }
 
         if (!class_exists($class)) {
             throw new \Exception($controller['class'].' not defined in '.$controller['path']);
         }
 
-        $instance = new $class($params);
-        $method = 'index';
+        if (!isset(self::$instances[$class])) {
+            self::$instances[$class] = new $class();
+        }
+
+        $controller['instance'] = self::$instances[$class];
+
+        return $controller;
+    }
+
+    /**
+     * Invoke a controller class/method
+     *
+     * @param  string $name
+     * @param  array $params
+     * @return void
+     */
+    public static function invoke($name, $params = null)
+    {
+        $controller = self::load($name);
+        $instance = $controller['instance'];
+        
+        $method = null;
         if (isset($controller['method'])) {
             $method = $controller['method'];
         } else if (property_exists($instance, 'default')) {
             $method = $instance->default;
         }
 
-        if (is_null($method)) {
-            return;
+        $vars = Template::engine()->get();
+        foreach ((array)$params as $var => $value) {
+            $vars[$var] = $value;
         }
-        
-        if (method_exists($instance, $method)) {
-            if (!array_key_exists($method, (array)self::$results)) {
-                foreach ((array)$params as $var => $value) {
-                    $vars[$var] = $value;
-                }
-                foreach ((array)$vars as $var => $value) {
-                    $instance->{$var} = $value;
-                }
 
-                $result = call_user_func_array(array($instance, $method), array($params));
-                foreach ((array)$instance as $var => $value) {
-                    $vars[$var] = $value;
-                }
+        if (isset($method)) {
+            if (method_exists($instance, $method)) {
+                $class_method = $controller['class'].$method;
+                if (!array_key_exists($class_method, (array)self::$results)) {
 
-                return self::$results[$method] = $result;
+                    foreach ((array)$vars as $var => $value) {
+                        $instance->{$var} = $value;
+                    }
+
+                    call_user_func_array(array($instance, $method), array());
+                    foreach ((array)$instance as $var => $value) {
+                        $vars[$var] = $value;
+                    }
+                    
+                    self::$results[$class_method] = true;
+                }
             } else {
-                self::$results[$method];
+                if ($default_method) {
+                    throw new \Exception("Controller method '".$method."()' not defined in ".$controller['class']);
+                }
             }
         } else {
-            if ($default_method) {
-                throw new \Exception("Controller method '".$method."()' not defined in ".$controller['class']);
+            foreach ((array)$instance as $var => $value) {
+                $vars[$var] = $value;
             }
         }
+
+        Template::engine()->set_global($vars);
     }
 
     /**
@@ -179,20 +176,27 @@ class Controller
         if (is_file($controller['path'])) {
             // Include all controllers in this path, and also extend paths
             foreach (array($controller['extend'], $controller) as $ctrl) {
-                foreach (glob(dirname($ctrl['path']).'/*Controller.php') as $controller_path) {
-                    self::load($controller_path, $ctrl);
+                if (!$ctrl['path']) {
+                    continue;
+                }
+                $base_path = str_replace($ctrl['file'], '', $ctrl['path']);
+                foreach (glob(dirname($ctrl['path']).'/*Controller.php') as $controller_file_path) {
+                    self::autoload_file($controller_file_path, $ctrl);
+                    $this_file = str_replace($base_path, '', $controller_file_path);
+                    $this_class = $ctrl['namespace'].'\\'.str_replace('.php', '', $this_file);
+                    self::autoload_helpers($this_class);
                 }
             }
         }
     }
 
     /**
-     * Load and evaluate a controller from a file
+     * Auto load and evaluate a controller from a file
      *
      * @param  string $controller_path
      * @param  array $controller
      */
-    public static function load($controller_path, $controller)
+    public static function autoload_file($controller_path, $controller)
     {
         $class_contents = file_get_contents($controller_path);
 
@@ -234,11 +238,11 @@ class Controller
     }
 
     /**
-     * Load and register controller helpers
+     * Auto load and register controller helpers
      *
      * @return void
      */
-    public static function load_helpers($controller_class)
+    public static function autoload_helpers($controller_class)
     {
         if (!property_exists($controller_class, 'helpers')) {
             return;

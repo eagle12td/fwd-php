@@ -467,16 +467,18 @@ class TemplateEngine
                 }
             ),
 
-            // {controller "action"}
-            // {controller ["action2", "action2"]}  
+            // {controller "name/method"}
             'controller' => array(
 
                 'type' => 'compiler',
                 'handler' => function ($args, $smarty)
                 {
                     $params = parse_smarty_compile_args($args, array(
-                        'tags' => array('invoke')
+                        'tags' => array('name')
                     ));
+
+                    // Load controller to ensure helpers are defined during compilation
+                    Controller::load(trim($params['name'], '"'));
 
                     return '<?php controller('.serialize_to_php($params).'); ?>';
                 }
