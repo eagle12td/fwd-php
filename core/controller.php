@@ -94,15 +94,13 @@ class Controller
         foreach ((array)$params as $var => $value) {
             $vars[$var] = $value;
         }
-
+        foreach ((array)$vars as $var => $value) {
+            $instance->{$var} = $value;
+        }
         if (isset($method)) {
             if (method_exists($instance, $method)) {
                 $class_method = $controller['class'].$method;
                 if (!array_key_exists($class_method, (array)self::$results)) {
-
-                    foreach ((array)$vars as $var => $value) {
-                        $instance->{$var} = $value;
-                    }
 
                     call_user_func_array(array($instance, $method), array());
                     foreach ((array)$instance as $var => $value) {
@@ -116,10 +114,9 @@ class Controller
                     throw new \Exception("Controller method '".$method."()' not defined in ".$controller['class']);
                 }
             }
-        } else {
-            foreach ((array)$instance as $var => $value) {
-                $vars[$var] = $value;
-            }
+        }
+        foreach ((array)$instance as $var => $value) {
+            $vars[$var] = $value;
         }
 
         Template::engine()->set_global($vars);
