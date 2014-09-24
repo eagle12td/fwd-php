@@ -120,13 +120,11 @@ namespace Forward
          **/
         public function offset_get_result($field)
         {
-            $header_links = $this->links;
-
             $data_links = null;
             if (isset($this->links['*'])) {
-                $data_links = $header_links['*'];
-            } else if (isset($header_links[$field]['links'])) {
-                $data_links = $header_links[$field]['links'];
+                $data_links = $this->links['*'];
+            } else if (isset($this->links[$field]['links'])) {
+                $data_links = $this->links[$field]['links'];
             }
 
             $data_field = parent::offsetExists($field) ? parent::offsetGet($field) : null;

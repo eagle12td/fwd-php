@@ -180,8 +180,6 @@ namespace Forward
             }
 
             $this->get_versions();
-            
-            $cached = $result['$cached'];
 
             $cache_content = $result;
             $cache_content['$cached'] = true;
@@ -189,14 +187,17 @@ namespace Forward
             $cache_key = $this->get_key($url, $data);
             $cache_path = $this->get_path($cache_key, 'result');
             if ($size = $this->write_cache($cache_path, $cache_content)) {
-                foreach ($this->result_collections($result) as $collection) {
-                    // Collection may not be cacheable
-                    if (!isset($cached[$collection]) && !isset($this->versions[$collection])) {
-                        continue;
-                    }
-                    $this->put_index($collection, $cache_key, $size);
-                    if (isset($cached[$collection])) {
-                        $this->put_version($collection, $cached[$collection]);
+                if (isset($result['$cached'])) {
+                    $cached = $result['$cached'];
+                    foreach ($this->result_collections($result) as $collection) {
+                        // Collection may not be cacheable
+                        if (!isset($cached[$collection]) && !isset($this->versions[$collection])) {
+                            continue;
+                        }
+                        $this->put_index($collection, $cache_key, $size);
+                        if (isset($cached[$collection])) {
+                            $this->put_version($collection, $cached[$collection]);
+                        }
                     }
                 }
             }
