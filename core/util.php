@@ -756,6 +756,9 @@ function eval_conditions($conditions, $value = null)
         foreach ($conditions as $key => $compare) {
             if ($key && $key[0] === '$') {
                 switch ($key) {
+                case '$empty':
+                    $match = empty($value);
+                    break;
                 case '$eq':
                     $match = ($value === $compare);
                     break;
@@ -774,16 +777,57 @@ function eval_conditions($conditions, $value = null)
                 case '$gte':
                     $match = ($value >= $compare);
                     break;
+                case '$or':
+                    if (is_array($compare)) {
+                        $match = false;
+                        foreach ($compare as $compare_condition) {
+                            $match = eval_conditions($compare_condition, $value);
+                            if ($match) {
+                                $match = true;
+                                break;
+                            }
+                        }
+                    } else {
+                        $match = false;
+                    }
+                    break;
+                case '$and': 
+                    if (is_array($value)) {
+                        foreach ($value as $condition_or) {
+                            $match = eval_conditions($condition_or, $compare);
+                            if (!$match) {
+                                $match = false;
+                                break;
+                            }
+                        }
+                        $match = true;
+                    } else {
+                        $match = false;
+                    }
+                    break;
                 }
             } else {
-                $match = eval_conditions($compare, isset($value[$key]) ? $value[$key] : null);
+                if (is_string($key) && strpos($key, '.') !== false) {
+                    $parts = explode('.', $key);
+                    foreach ($parts as $part) {
+                        if (isset($value[$part])) {
+                            $value = $value[$part];
+                        } else {
+                            $value = null;
+                            break;
+                        }
+                    }
+                } else {
+                    $value = isset($value[$key]) ? $value[$key] : null;
+                }
+                $match = eval_conditions($compare, $value);
             }
             if (!$match) {
                 break;
             }
         }
     } else {
-        $match = ($conditions === $value);
+        $match = ($conditions == $value);
     }
 
     return $match;
